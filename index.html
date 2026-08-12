@@ -1,0 +1,3781 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚛 车辆油耗总汇 · 车队看板</title>
+
+    <!-- Font Awesome 5 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+    </script>
+
+    <!-- SheetJS (xlsx) -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js">
+    </script>
+
+    <style>
+        /* ===== 重置 & 全局 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background: #f4f7fc;
+            min-height: 100vh;
+            padding: 2rem 1.5rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-wrapper {
+            max-width: 1440px;
+            width: 100%;
+        }
+
+        /* ===== 头部 ===== */
+        .dashboard-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            background: white;
+            padding: 1.5rem 2rem;
+            border-radius: 28px;
+            box-shadow: 0 8px 24px rgba(0, 20, 50, 0.06);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .header-left i {
+            font-size: 2rem;
+            color: #1a5fb4;
+            background: #e6eff9;
+            padding: 0.5rem;
+            border-radius: 16px;
+        }
+
+        .header-left h1 {
+            font-weight: 600;
+            font-size: 1.8rem;
+            color: #0b2b4a;
+            letter-spacing: -0.3px;
+        }
+
+        .header-left span {
+            font-weight: 300;
+            color: #4a6f8e;
+            font-size: 1rem;
+            margin-left: 0.5rem;
+        }
+
+        .current-month-badge {
+            background: #e3edfc;
+            color: #1a5fb4;
+            padding: 0.3rem 1.2rem;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-left: 0.5rem;
+        }
+
+        .current-month-badge i {
+            font-size: 0.75rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: #f5f9ff;
+            padding: 0.3rem 1rem 0.3rem 1.2rem;
+            border-radius: 40px;
+            border: 1px solid #e2ecfa;
+        }
+
+        .filter-group label {
+            font-weight: 500;
+            color: #2a5075;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .filter-group label i {
+            font-size: 0.9rem;
+            color: #5f7f9f;
+        }
+
+        .filter-group select {
+            border: none;
+            background: transparent;
+            padding: 0.4rem 0.2rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #0b2b4a;
+            outline: none;
+            cursor: pointer;
+            min-width: 80px;
+        }
+
+        .filter-group select:hover {
+            color: #1a5fb4;
+        }
+
+        .status-badge {
+            background: #e8f5e9;
+            color: #1e6b3b;
+            padding: 0.4rem 1.2rem;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            white-space: nowrap;
+        }
+
+        .status-badge i {
+            font-size: 0.75rem;
+        }
+
+        .export-btn {
+            background: white;
+            border: 1px solid #1a5fb4;
+            padding: 0.5rem 1.2rem;
+            border-radius: 30px;
+            font-weight: 500;
+            color: #1a5fb4;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .export-btn:hover {
+            background: #1a5fb4;
+            color: white;
+        }
+
+        .refresh-btn {
+            background: white;
+            border: 1px solid #d0ddee;
+            padding: 0.5rem 1.2rem;
+            border-radius: 30px;
+            font-weight: 500;
+            color: #1f4973;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .refresh-btn:hover {
+            background: #eef4ff;
+            border-color: #1a5fb4;
+            color: #0b2b4a;
+        }
+
+        /* ===== 统计卡片 ===== */
+        .stats-wrapper {
+            position: relative;
+            margin-bottom: 2.5rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.8rem;
+        }
+
+        /* 所有卡片通用 */
+        .stat-card {
+            background: white;
+            padding: 1.2rem 1.2rem;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+            border: 1px solid rgba(0, 0, 0, 0.02);
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            cursor: default;
+        }
+
+        /* 可点击卡片（车辆总数、Branch、车型） */
+        .stat-card.clickable {
+            cursor: pointer;
+        }
+
+        .stat-card.clickable:hover {
+            border-color: #1a5fb4;
+            box-shadow: 0 8px 18px rgba(26, 95, 180, 0.10);
+            transform: translateY(-1px);
+        }
+
+        .stat-card.clickable .stat-icon {
+            background: #e3edfc;
+        }
+
+        /* 🔥 不可交互卡片（总油耗、总花费、总 m³、总 趟）—— 紧凑样式 */
+        .stat-card.compact {
+            padding: 0.7rem 0.9rem;
+            background: #f5f7fa;
+            border-color: #e2e6ec;
+            cursor: default;
+            gap: 0.6rem;
+        }
+
+        .stat-card.compact .stat-icon {
+            background: #eef0f3;
+            color: #8ba3bb;
+            width: 32px;
+            height: 32px;
+            font-size: 0.9rem;
+            border-radius: 10px;
+        }
+
+        .stat-card.compact .stat-info .value {
+            font-size: 1.1rem;
+            color: #0b2b4a;
+            line-height: 1.3;
+        }
+
+        .stat-card.compact .stat-info .label {
+            font-size: 0.6rem;
+            color: #8ba3bb;
+            letter-spacing: 0.2px;
+        }
+
+        .stat-card.compact .filter-label {
+            font-size: 0.55rem;
+            color: #a0b4c8;
+            font-weight: 400;
+            margin-top: 0.05rem;
+            letter-spacing: 0.1px;
+        }
+
+        /* 正常卡片图标 */
+        .stat-icon {
+            background: #e9f0fa;
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1a5fb4;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .stat-info {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .stat-info .label {
+            font-size: 0.8rem;
+            color: #5b7b9a;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        .stat-info .value {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #0b2b4a;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .filter-label {
+            font-size: 0.7rem;
+            color: #8ba3bb;
+            font-weight: 400;
+            margin-top: 0.1rem;
+            letter-spacing: 0.2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* 针对总 m³ / 总 趟 的数值微调 */
+        .stat-card.compact .stat-info .value.m3-value {
+            font-size: 1rem;
+        }
+
+        .stat-card.compact .stat-info .value.trip-value {
+            font-size: 1rem;
+        }
+
+        /* 右上角全部按钮 */
+        .reset-btn {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #dce6f2;
+            padding: 0.4rem 1.2rem;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #1f3a57;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        }
+
+        .reset-btn:hover {
+            background: #eef4ff;
+            border-color: #1a5fb4;
+            color: #0b2b4a;
+        }
+
+        .reset-btn i {
+            font-size: 0.75rem;
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 1024px) {
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 700px) {
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .stat-card.compact {
+                padding: 0.5rem 0.6rem;
+            }
+            .stat-card.compact .stat-icon {
+                width: 28px;
+                height: 28px;
+                font-size: 0.7rem;
+            }
+            .stat-card.compact .stat-info .value {
+                font-size: 0.9rem;
+            }
+            .stat-card.compact .stat-info .label {
+                font-size: 0.5rem;
+            }
+            .stat-card .stat-info .value {
+                font-size: 1.2rem;
+            }
+            .stat-card {
+                padding: 0.8rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .reset-btn {
+                position: static;
+                margin-top: 0.5rem;
+                justify-content: center;
+            }
+        }
+
+        /* ===== 分析报表（原有样式保持不变） ===== */
+        .analytics-section {
+            margin-bottom: 2.5rem;
+        }
+
+        .analytics-section .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #0b2b4a;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .analytics-section .section-title i {
+            color: #1a5fb4;
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 900px) {
+            .analytics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .analytics-card {
+            background: white;
+            border-radius: 24px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+            border: 1px solid #ecf2f9;
+        }
+
+        .analytics-card .card-title {
+            font-weight: 600;
+            color: #1a4670;
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .analytics-card .card-title i {
+            color: #5f7f9f;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 220px;
+        }
+
+        /* ===== 趋势图切换按钮 ===== */
+        .trend-metric-toggles {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .trend-metric-toggle {
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            border: 1px solid #dce6f2;
+            background: white;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #8ba3bb;
+            cursor: pointer;
+            transition: 0.15s;
+            white-space: nowrap;
+        }
+
+        .trend-metric-toggle:hover {
+            background: #eef4ff;
+            border-color: #b0cce6;
+        }
+
+        .trend-metric-toggle.active {
+            background: #1a5fb4;
+            border-color: #1a5fb4;
+            color: white;
+        }
+
+        .trend-metric-toggle .color-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.3rem;
+            vertical-align: middle;
+        }
+
+        /* ===== 排行榜 ===== */
+        .rank-tabs {
+            display: flex;
+            gap: 0.4rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .rank-tab {
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            border: 1px solid #dce6f2;
+            background: white;
+            color: #3a5e7e;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        .rank-tab:hover {
+            background: #eef4ff;
+            border-color: #b0cce6;
+        }
+
+        .rank-tab.active {
+            background: #1a5fb4;
+            border-color: #1a5fb4;
+            color: white;
+        }
+
+        .rank-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .rank-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.4rem 0.2rem;
+            border-bottom: 1px solid #f0f5fe;
+            font-size: 0.85rem;
+        }
+
+        .rank-item:last-child {
+            border-bottom: none;
+        }
+
+        .rank-item .rank-pos {
+            font-weight: 600;
+            color: #5f7f9f;
+            width: 28px;
+            font-size: 0.75rem;
+        }
+
+        .rank-item .rank-pos.gold {
+            color: #f5a623;
+        }
+        .rank-item .rank-pos.silver {
+            color: #a0b4c8;
+        }
+        .rank-item .rank-pos.bronze {
+            color: #cd7f32;
+        }
+
+        .rank-item .rank-name {
+            font-weight: 500;
+            color: #0b2b4a;
+            flex: 1;
+            margin: 0 0.3rem;
+            font-size: 0.85rem;
+        }
+
+        .rank-item .rank-value {
+            font-weight: 600;
+            color: #0b3d66;
+            font-variant-numeric: tabular-nums;
+            font-size: 0.8rem;
+        }
+
+        .rank-item .rank-plant {
+            font-size: 0.65rem;
+            color: #5f7f9f;
+            background: #f3f7fc;
+            padding: 0.05rem 0.5rem;
+            border-radius: 12px;
+            margin-right: 0.3rem;
+        }
+
+        .rank-more {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #8ba3bb;
+            padding-top: 0.3rem;
+            border-top: 1px dashed #e2ecfa;
+            margin-top: 0.3rem;
+        }
+
+        .rank-empty {
+            text-align: center;
+            padding: 2rem 0.5rem;
+            color: #8ba3bb;
+            font-size: 0.9rem;
+        }
+        .rank-empty i {
+            font-size: 1.5rem;
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #c5d6ea;
+        }
+
+        /* ===== 对比视图 ===== */
+        #comparisonView {
+            display: none;
+            margin-top: 1.5rem;
+        }
+
+        #comparisonView.visible {
+            display: block;
+        }
+
+        .comparison-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.2rem;
+            gap: 1rem;
+        }
+
+        .comparison-header .title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #0b2b4a;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .comparison-header .title i {
+            color: #1a5fb4;
+        }
+
+        .comparison-header .active-filter {
+            font-size: 0.85rem;
+            color: #5f7f9f;
+            background: #f0f5fe;
+            padding: 0.2rem 1rem;
+            border-radius: 30px;
+        }
+
+        .comparison-header .active-filter strong {
+            color: #1a5fb4;
+        }
+
+        /* ===== Branch 控件 ===== */
+        .branch-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            background: #f5f9ff;
+            padding: 0.6rem 1.2rem;
+            border-radius: 16px;
+            border: 1px solid #e2ecfa;
+        }
+
+        .branch-controls .control-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .branch-controls .control-group label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #2a5075;
+        }
+
+        .branch-controls .control-group select {
+            border: 1px solid #dce6f2;
+            background: white;
+            padding: 0.25rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #0b2b4a;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .branch-controls .control-group select:hover {
+            border-color: #b0cce6;
+        }
+
+        .month-btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.2rem;
+        }
+
+        .month-btn-group .month-btn {
+            padding: 0.15rem 0.5rem;
+            border-radius: 12px;
+            border: 1px solid #dce6f2;
+            background: white;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #5f7f9f;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        .month-btn-group .month-btn:hover {
+            background: #eef4ff;
+            border-color: #b0cce6;
+        }
+
+        .month-btn-group .month-btn.active {
+            background: #1a5fb4;
+            border-color: #1a5fb4;
+            color: white;
+        }
+
+        /* ===== Branch 指标切换 ===== */
+        .branch-metric-toggles {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 1rem;
+            background: #f5f9ff;
+            padding: 0.5rem 0.8rem;
+            border-radius: 16px;
+            border: 1px solid #e2ecfa;
+        }
+
+        .branch-metric-toggle {
+            padding: 0.25rem 0.8rem;
+            border-radius: 20px;
+            border: 1px solid transparent;
+            background: transparent;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #8ba3bb;
+            cursor: pointer;
+            transition: 0.15s;
+            white-space: nowrap;
+        }
+
+        .branch-metric-toggle:hover {
+            color: #1f3a57;
+            background: rgba(26, 95, 180, 0.05);
+        }
+
+        .branch-metric-toggle.active {
+            background: #1a5fb4;
+            color: white;
+            border-color: #1a5fb4;
+        }
+
+        /* ===== 分组表格 ===== */
+        .branch-group-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .branch-group-header {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #0b2b4a;
+            background: #f0f5fe;
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .branch-group-header .group-count {
+            font-weight: 400;
+            font-size: 0.8rem;
+            color: #5f7f9f;
+        }
+
+        .comparison-table-wrap {
+            overflow-x: auto;
+            border-radius: 16px;
+            border: 1px solid #ecf2f9;
+            background: white;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            min-width: 400px;
+        }
+
+        .comparison-table th {
+            background: #fafcff;
+            color: #1a4670;
+            font-weight: 600;
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            border-bottom: 2px solid #dbe6f2;
+            white-space: nowrap;
+        }
+
+        .comparison-table td {
+            padding: 0.5rem 0.8rem;
+            border-bottom: 1px solid #eef3fa;
+            color: #1f3a57;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .comparison-table .col-plate {
+            font-weight: 600;
+            color: #0b2b4a;
+        }
+
+        .comparison-table .col-metric {
+            font-weight: 500;
+            color: #0b3d66;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .comparison-table .clickable-row:hover {
+            background: #f5faff;
+        }
+
+        .comparison-table .detail-label {
+            font-weight: 600;
+            color: #0b2b4a;
+            background: #f5faff;
+        }
+
+        .detail-row td {
+            padding: 0.8rem 1rem;
+        }
+
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .detail-table th {
+            background: #eef4fa;
+            color: #1a4670;
+            padding: 0.3rem 0.6rem;
+            text-align: center;
+            border: 1px solid #dce6f2;
+            font-weight: 600;
+        }
+
+        .detail-table td {
+            padding: 0.3rem 0.6rem;
+            text-align: center;
+            border: 1px solid #dce6f2;
+            color: #1f3a57;
+        }
+
+        .detail-table .detail-label {
+            font-weight: 600;
+            color: #0b2b4a;
+            text-align: left;
+            background: #f5faff;
+        }
+
+        /* ===== 单车辆详情 ===== */
+        .single-vehicle-month-filter {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1rem 0 0.8rem 0;
+            padding: 0.3rem 0.8rem;
+            background: #f5f9ff;
+            border-radius: 12px;
+            border: 1px solid #e2ecfa;
+        }
+
+        .single-vehicle-month-filter label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #2a5075;
+            margin-right: 0.3rem;
+        }
+
+        .single-vehicle-month-filter .month-btn {
+            padding: 0.12rem 0.5rem;
+            border-radius: 12px;
+            border: 1px solid #dce6f2;
+            background: white;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #5f7f9f;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        .single-vehicle-month-filter .month-btn:hover {
+            background: #eef4ff;
+            border-color: #b0cce6;
+        }
+
+        .single-vehicle-month-filter .month-btn.active {
+            background: #1a5fb4;
+            border-color: #1a5fb4;
+            color: white;
+        }
+
+        .single-vehicle-detail {
+            background: white;
+            border-radius: 24px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            border: 1px solid #ecf2f9;
+        }
+
+        .single-vehicle-detail .vehicle-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #0b2b4a;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .single-vehicle-detail .vehicle-title .plate {
+            color: #1a5fb4;
+        }
+
+        .single-vehicle-detail .vehicle-title .meta {
+            font-weight: 400;
+            font-size: 0.9rem;
+            color: #5f7f9f;
+        }
+
+        .single-vehicle-detail .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.8rem;
+            margin: 1rem 0 1.2rem 0;
+        }
+
+        .single-vehicle-detail .summary-item {
+            background: #f5f9ff;
+            padding: 0.6rem 1rem;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .single-vehicle-detail .summary-item .label {
+            font-size: 0.7rem;
+            color: #5f7f9f;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .single-vehicle-detail .summary-item .value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #0b2b4a;
+        }
+
+        .single-vehicle-detail .detail-section-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #1a4670;
+            margin: 1rem 0 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* ===== 模态框 ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-box {
+            background: white;
+            border-radius: 28px;
+            padding: 2rem 2.5rem;
+            max-width: 520px;
+            width: 90%;
+            max-height: 80vh;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            position: relative;
+            animation: modalFadeIn 0.2s ease;
+            overflow-y: auto;
+        }
+
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1.2rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #8ba3bb;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .modal-close:hover {
+            color: #1f3a57;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #0b2b4a;
+            margin-bottom: 0.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .modal-title i {
+            color: #1a5fb4;
+        }
+
+        .modal-subtitle {
+            font-size: 0.85rem;
+            color: #5f7f9f;
+            margin-bottom: 1.2rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+        }
+
+        .modal-btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 30px;
+            border: 2px solid #dce6f2;
+            background: white;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #1f3a57;
+            cursor: pointer;
+            transition: 0.2s;
+            flex: 1;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .modal-btn:hover {
+            background: #eef4ff;
+            border-color: #b0cce6;
+        }
+
+        .modal-btn.active {
+            background: #1a5fb4;
+            border-color: #1a5fb4;
+            color: white;
+        }
+
+        .modal-btn.all-btn {
+            background: #e8f0fe;
+            border-color: #c5d6ea;
+            font-weight: 600;
+        }
+
+        .modal-btn.all-btn:hover {
+            background: #d4e0f0;
+        }
+
+        .modal-btn .plant-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        /* ===== 车牌选择 ===== */
+        .plate-filter-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 0.8rem;
+            padding: 0.3rem 0.2rem;
+        }
+
+        .plate-filter-controls .control-group {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .plate-filter-controls .control-group label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #2a5075;
+        }
+
+        .plate-filter-controls .control-group select {
+            border: 1px solid #dce6f2;
+            background: white;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #0b2b4a;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .plate-filter-controls .control-group select:hover {
+            border-color: #b0cce6;
+        }
+
+        .plate-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 0.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 0.2rem 0;
+        }
+
+        .plate-grid .modal-btn {
+            flex: none;
+            min-width: 0;
+            font-size: 0.8rem;
+            padding: 0.4rem 0.6rem;
+        }
+
+        .plate-grid .modal-btn:hover {
+            background: #eef4ff;
+            border-color: #b0cce6;
+        }
+
+        .plate-grid .modal-btn.active {
+            background: #1a5fb4;
+            border-color: #1a5fb4;
+            color: white;
+        }
+
+        .plate-grid .modal-btn.has-data {
+            border-color: #1a5fb4;
+            background: #f0f6ff;
+            color: #0b2b4a;
+        }
+
+        .plate-grid .modal-btn.has-data:hover {
+            background: #d4e0f0;
+        }
+
+        .plate-grid .modal-btn.no-data {
+            opacity: 0.4;
+            border-color: #dce6f2;
+            background: #f5f7fa;
+            color: #8ba3bb;
+        }
+
+        .plate-grid .modal-btn.no-data:hover {
+            opacity: 0.6;
+            background: #eef0f3;
+        }
+
+        .plate-grid .modal-btn .data-status {
+            font-size: 0.55rem;
+            margin-left: 0.2rem;
+        }
+
+        .plate-grid .modal-btn.has-data .data-status {
+            color: #1a5fb4;
+        }
+
+        .plate-grid .modal-btn.no-data .data-status {
+            color: #b0c6da;
+        }
+
+        /* ===== 车型选择 ===== */
+        .type-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 0.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 0.2rem 0;
+        }
+
+        .type-grid .modal-btn {
+            flex: none;
+            min-width: 0;
+            font-size: 0.8rem;
+            padding: 0.4rem 0.6rem;
+        }
+
+        .type-grid .modal-btn:hover {
+            background: #eef4ff;
+            border-color: #b0cce6;
+        }
+
+        .type-grid .modal-btn.active {
+            background: #1a5fb4;
+            border-color: #1a5fb4;
+            color: white;
+        }
+
+        /* ===== 全部车辆数据表格 ===== */
+        .all-vehicles-section {
+            margin-top: 2.5rem;
+        }
+
+        .all-vehicles-section .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #0b2b4a;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .all-vehicles-section .section-title i {
+            color: #1a5fb4;
+        }
+
+        .all-vehicles-section .section-title .vehicle-count {
+            font-weight: 400;
+            font-size: 0.9rem;
+            color: #5f7f9f;
+            margin-left: 0.5rem;
+        }
+
+        .all-vehicles-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            background: #f5f9ff;
+            padding: 0.6rem 1.2rem;
+            border-radius: 16px;
+            border: 1px solid #e2ecfa;
+        }
+
+        .all-vehicles-controls .control-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .all-vehicles-controls .control-group label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #2a5075;
+        }
+
+        .all-vehicles-controls .control-group select {
+            border: 1px solid #dce6f2;
+            background: white;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #0b2b4a;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .all-vehicles-controls .control-group select:hover {
+            border-color: #b0cce6;
+        }
+
+        .all-vehicles-metric-toggles {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+            align-items: center;
+        }
+
+        .all-vehicles-metric-toggles label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #2a5075;
+            margin-right: 0.2rem;
+        }
+
+        .all-vehicles-metric-toggle {
+            padding: 0.12rem 0.6rem;
+            border-radius: 14px;
+            border: 1px solid #dce6f2;
+            background: white;
+            font-size: 0.65rem;
+            font-weight: 500;
+            color: #8ba3bb;
+            cursor: pointer;
+            transition: 0.15s;
+            white-space: nowrap;
+        }
+
+        .all-vehicles-metric-toggle:hover {
+            background: #eef4ff;
+            border-color: #b0cce6;
+        }
+
+        .all-vehicles-metric-toggle.active {
+            background: #1a5fb4;
+            border-color: #1a5fb4;
+            color: white;
+        }
+
+        .all-vehicles-table-wrap {
+            overflow-x: auto;
+            border-radius: 16px;
+            border: 1px solid #ecf2f9;
+            background: white;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .all-vehicles-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+            min-width: 600px;
+        }
+
+        .all-vehicles-table th {
+            background: #fafcff;
+            color: #1a4670;
+            font-weight: 600;
+            padding: 0.5rem 0.7rem;
+            text-align: left;
+            border-bottom: 2px solid #dbe6f2;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .all-vehicles-table th:hover {
+            background: #eef4fa;
+        }
+
+        .all-vehicles-table th .sort-icon {
+            font-size: 0.6rem;
+            margin-left: 0.3rem;
+            color: #b0cce6;
+        }
+
+        .all-vehicles-table td {
+            padding: 0.4rem 0.7rem;
+            border-bottom: 1px solid #eef3fa;
+            color: #1f3a57;
+            white-space: nowrap;
+        }
+
+        .all-vehicles-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .all-vehicles-table .col-metric-hidden {
+            display: none;
+        }
+
+        .all-vehicles-table .col-plate {
+            font-weight: 600;
+            color: #0b2b4a;
+        }
+
+        .all-vehicles-table .col-metric {
+            font-weight: 500;
+            color: #0b3d66;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ===== 空状态 & 加载 ===== */
+        .empty-state {
+            background: white;
+            border-radius: 28px;
+            padding: 3rem 2rem;
+            text-align: center;
+            color: #5a7a9a;
+            border: 2px dashed #dce6f2;
+        }
+        .empty-state i {
+            font-size: 2.5rem;
+            opacity: 0.5;
+            margin-bottom: 1rem;
+            display: block;
+            color: #b8cee6;
+        }
+        .empty-state p {
+            font-size: 1.1rem;
+        }
+
+        .loading-placeholder {
+            text-align: center;
+            padding: 4rem 1rem;
+            color: #4e6f8e;
+        }
+        .loading-placeholder i {
+            font-size: 3rem;
+            color: #b0cce6;
+            margin-bottom: 1rem;
+        }
+
+        .error-message {
+            background: #ffeae9;
+            border-left: 6px solid #c73b3b;
+            padding: 1.5rem 2rem;
+            border-radius: 20px;
+            color: #7a2e2e;
+        }
+        .error-message i {
+            margin-right: 0.75rem;
+        }
+
+        /* ===== 响应式补充 ===== */
+        @media (max-width: 700px) {
+            body {
+                padding: 1rem;
+            }
+            .dashboard-header {
+                flex-direction: column;
+                align-items: start;
+                gap: 1rem;
+            }
+            .header-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+            .filter-group {
+                flex-wrap: wrap;
+                padding: 0.5rem 1rem;
+                border-radius: 20px;
+                width: 100%;
+            }
+            .analytics-grid {
+                grid-template-columns: 1fr;
+            }
+            .chart-container {
+                height: 180px;
+            }
+            .modal-box {
+                padding: 1.5rem;
+            }
+            .modal-btn {
+                min-width: 60px;
+                font-size: 0.8rem;
+                padding: 0.4rem 0.8rem;
+            }
+            .single-vehicle-detail .summary-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .comparison-table {
+                font-size: 0.75rem;
+                min-width: 350px;
+            }
+            .comparison-table th,
+            .comparison-table td {
+                padding: 0.3rem 0.5rem;
+            }
+            .branch-metric-toggle {
+                font-size: 0.7rem;
+                padding: 0.15rem 0.6rem;
+            }
+            .branch-controls {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+            .month-btn-group .month-btn {
+                font-size: 0.65rem;
+                padding: 0.1rem 0.4rem;
+            }
+            .trend-metric-toggle {
+                font-size: 0.7rem;
+                padding: 0.15rem 0.6rem;
+            }
+            .type-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+            .export-btn {
+                font-size: 0.8rem;
+                padding: 0.4rem 1rem;
+            }
+            .plate-grid {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            }
+            .plate-filter-controls {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.4rem;
+            }
+            .single-vehicle-month-filter {
+                flex-wrap: wrap;
+                gap: 0.3rem;
+                padding: 0.3rem 0.6rem;
+            }
+            .single-vehicle-month-filter .month-btn {
+                font-size: 0.65rem;
+                padding: 0.1rem 0.4rem;
+            }
+            .all-vehicles-controls {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+            .all-vehicles-metric-toggle {
+                font-size: 0.6rem;
+                padding: 0.1rem 0.4rem;
+            }
+            .all-vehicles-table {
+                font-size: 0.7rem;
+                min-width: 400px;
+            }
+            .all-vehicles-table th,
+            .all-vehicles-table td {
+                padding: 0.3rem 0.4rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .filter-group {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.3rem;
+            }
+            .filter-group .filter-divider {
+                display: none;
+            }
+            .modal-buttons {
+                flex-direction: column;
+            }
+            .modal-btn {
+                width: 100%;
+            }
+            .single-vehicle-detail .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            .type-grid {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            }
+            .plate-grid {
+                grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-wrapper" id="app">
+        <!-- ===== 头部 ===== -->
+        <header class="dashboard-header">
+            <div class="header-left">
+                <i class="fas fa-truck"></i>
+                <h1>油耗总汇 <span>· 车队看板</span></h1>
+                <span class="current-month-badge" id="currentMonthBadge">
+                    <i class="far fa-calendar-alt"></i> 截至: <span id="currentMonthDisplay">--</span>
+                </span>
+            </div>
+            <div class="header-actions">
+                <div class="filter-group">
+                    <label><i class="far fa-calendar-alt"></i> 年份</label>
+                    <select id="yearFilter">
+                        <option value="all">全部</option>
+                    </select>
+                </div>
+                <div class="status-badge" id="statusBadge">
+                    <i class="fas fa-circle" style="color:#2e7d32;"></i> 已连接
+                </div>
+                <button class="export-btn" id="exportBtn">
+                    <i class="fas fa-file-excel"></i> 导出 Excel
+                </button>
+                <button class="refresh-btn" id="refreshBtn">
+                    <i class="fas fa-sync-alt"></i> 刷新
+                </button>
+            </div>
+        </header>
+
+        <!-- ===== 统计卡片 ===== -->
+        <div class="stats-wrapper">
+            <div class="stats-grid" id="statsGrid">
+                <!-- 1. 车辆总数（可点击） -->
+                <div class="stat-card clickable" id="vehicleCountCard">
+                    <div class="stat-icon"><i class="fas fa-car"></i></div>
+                    <div class="stat-info">
+                        <span class="label">车辆总数</span>
+                        <span class="value" id="totalVehicles">-</span>
+                    </div>
+                </div>
+                <!-- 2. Branch（可点击） -->
+                <div class="stat-card clickable" id="coverMonthsCard">
+                    <div class="stat-icon"><i class="fas fa-building"></i></div>
+                    <div class="stat-info">
+                        <span class="label">Branch</span>
+                        <span class="value" id="totalMonths">-</span>
+                    </div>
+                </div>
+                <!-- 3. 车型（可点击） -->
+                <div class="stat-card clickable" id="typeCard">
+                    <div class="stat-icon"><i class="fas fa-tag"></i></div>
+                    <div class="stat-info">
+                        <span class="label">车型</span>
+                        <span class="value" id="totalTypes">-</span>
+                    </div>
+                </div>
+                <!-- 4. 总油耗（不可交互，紧凑） -->
+                <div class="stat-card compact" id="totalFuelCard">
+                    <div class="stat-icon"><i class="fas fa-gas-pump"></i></div>
+                    <div class="stat-info">
+                        <span class="label">总油耗 (L)</span>
+                        <span class="value" id="totalFuel">-</span>
+                        <span class="filter-label" id="totalFuelFilterLabel">All of them</span>
+                    </div>
+                </div>
+                <!-- 5. 总花费（不可交互，紧凑） -->
+                <div class="stat-card compact" id="totalCostCard">
+                    <div class="stat-icon"><i class="fas fa-ring"></i></div>
+                    <div class="stat-info">
+                        <span class="label">总花费 (RM)</span>
+                        <span class="value" id="totalCost">-</span>
+                        <span class="filter-label" id="totalCostFilterLabel">All of them</span>
+                    </div>
+                </div>
+                <!-- 6. 总 m³（不可交互，紧凑） -->
+                <div class="stat-card compact" id="totalM3Card">
+                    <div class="stat-icon"><i class="fas fa-cube"></i></div>
+                    <div class="stat-info">
+                        <span class="label">总 m³</span>
+                        <span class="value" id="totalM3">-</span>
+                        <span class="filter-label" id="totalM3FilterLabel">All of them</span>
+                    </div>
+                </div>
+                <!-- 7. 总 趟（不可交互，紧凑） -->
+                <div class="stat-card compact" id="totalTripCard">
+                    <div class="stat-icon"><i class="fas fa-route"></i></div>
+                    <div class="stat-info">
+                        <span class="label">总 趟</span>
+                        <span class="value" id="totalTrip">-</span>
+                        <span class="filter-label" id="totalTripFilterLabel">All of them</span>
+                    </div>
+                </div>
+            </div>
+            <button class="reset-btn" id="resetBtn">
+                <i class="fas fa-undo-alt"></i> 全部
+            </button>
+        </div>
+
+        <!-- ===== 分析报表 ===== -->
+        <div class="analytics-section" id="analyticsSection">
+            <div class="section-title">
+                <i class="fas fa-chart-line"></i> 分析报表
+                <span style="font-weight:400;font-size:0.8rem;color:#5f7f9f;margin-left:0.5rem;">
+                    <i class="far fa-clock"></i> 最近 12 个月（不含本月）
+                </span>
+            </div>
+            <div class="analytics-grid">
+                <div class="analytics-card">
+                    <div class="card-title"><i class="fas fa-chart-simple"></i> 月度趋势分析</div>
+                    <div class="trend-metric-toggles" id="trendMetricToggles">
+                        <button class="trend-metric-toggle active" data-metric="totalLiter">
+                            <span class="color-dot" style="background:#1a5fb4;"></span> 总油耗
+                        </button>
+                        <button class="trend-metric-toggle" data-metric="totalCost">
+                            <span class="color-dot" style="background:#f5a623;"></span> 总花费
+                        </button>
+                        <button class="trend-metric-toggle" data-metric="totalM3">
+                            <span class="color-dot" style="background:#26a69a;"></span> 总 m³
+                        </button>
+                        <button class="trend-metric-toggle" data-metric="totalTrip">
+                            <span class="color-dot" style="background:#e53935;"></span> 总 趟
+                        </button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+                <div class="analytics-card">
+                    <div class="card-title"><i class="fas fa-trophy"></i> 车辆油耗排行榜</div>
+                    <div class="rank-tabs" id="rankTabs">
+                        <button class="rank-tab active" data-sort="totalLiter">总油耗</button>
+                        <button class="rank-tab" data-sort="totalCost">总花费</button>
+                        <button class="rank-tab" data-sort="totalM3">总 m³</button>
+                        <button class="rank-tab" data-sort="totalTrip">总 趟</button>
+                        <button class="rank-tab" data-sort="literPerM3">L/m³</button>
+                        <button class="rank-tab" data-sort="costPerM3">RM/m³</button>
+                        <button class="rank-tab" data-sort="literPerTrip">L/趟</button>
+                        <button class="rank-tab" data-sort="costPerTrip">RM/趟</button>
+                    </div>
+                    <div id="rankListContainer">
+                        <div class="rank-empty"><i class="fas fa-spinner fa-pulse"></i> 加载中...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 对比视图 ===== -->
+        <div id="comparisonView">
+            <div class="comparison-header">
+                <div class="title">
+                    <i class="fas fa-table"></i> 对比视图
+                    <span class="active-filter" id="activeFilterBadge">全部车辆</span>
+                </div>
+                <div style="font-size:0.8rem;color:#8ba3bb;">
+                    <i class="fas fa-info-circle"></i> 点击行展开月度明细
+                </div>
+            </div>
+            <div id="comparisonContainer">
+                <div class="loading-placeholder"><i class="fas fa-spinner fa-pulse"></i><p>加载中...</p></div>
+            </div>
+        </div>
+
+        <!-- ===== 全部车辆数据表格 ===== -->
+        <div class="all-vehicles-section" id="allVehiclesSection">
+            <div class="section-title">
+                <i class="fas fa-table"></i> 全部车辆数据
+                <span class="vehicle-count" id="allVehiclesCount">共 0 辆车</span>
+            </div>
+            <div class="all-vehicles-controls">
+                <div class="control-group">
+                    <label><i class="far fa-calendar-check"></i> 月份</label>
+                    <div class="month-btn-group" id="allVehiclesMonthGroup">
+                        <button class="month-btn active" data-month="all">全部</button>
+                        <button class="month-btn" data-month="01">1</button>
+                        <button class="month-btn" data-month="02">2</button>
+                        <button class="month-btn" data-month="03">3</button>
+                        <button class="month-btn" data-month="04">4</button>
+                        <button class="month-btn" data-month="05">5</button>
+                        <button class="month-btn" data-month="06">6</button>
+                        <button class="month-btn" data-month="07">7</button>
+                        <button class="month-btn" data-month="08">8</button>
+                        <button class="month-btn" data-month="09">9</button>
+                        <button class="month-btn" data-month="10">10</button>
+                        <button class="month-btn" data-month="11">11</button>
+                        <button class="month-btn" data-month="12">12</button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label><i class="fas fa-sort"></i> 排行方式</label>
+                    <select id="allVehiclesSort">
+                        <option value="totalLiter">总油耗</option>
+                        <option value="totalCost">总花费</option>
+                        <option value="totalM3">总 m³</option>
+                        <option value="totalTrip">总 趟</option>
+                        <option value="literPerM3">L/m³</option>
+                        <option value="costPerM3">RM/m³</option>
+                        <option value="literPerTrip">L/趟</option>
+                        <option value="costPerTrip">RM/趟</option>
+                        <option value="literPerKm">L/km</option>
+                        <option value="costPerKm">RM/km</option>
+                    </select>
+                </div>
+                <div class="all-vehicles-metric-toggles">
+                    <label>指标:</label>
+                    <button class="all-vehicles-metric-toggle active" data-metric="totalLiter">总油耗</button>
+                    <button class="all-vehicles-metric-toggle active" data-metric="totalCost">总花费</button>
+                    <button class="all-vehicles-metric-toggle active" data-metric="totalM3">总m³</button>
+                    <button class="all-vehicles-metric-toggle active" data-metric="totalTrip">总趟</button>
+                    <button class="all-vehicles-metric-toggle" data-metric="literPerM3">L/m³</button>
+                    <button class="all-vehicles-metric-toggle" data-metric="costPerM3">RM/m³</button>
+                    <button class="all-vehicles-metric-toggle" data-metric="literPerTrip">L/趟</button>
+                    <button class="all-vehicles-metric-toggle" data-metric="costPerTrip">RM/趟</button>
+                    <button class="all-vehicles-metric-toggle" data-metric="literPerKm">L/km</button>
+                    <button class="all-vehicles-metric-toggle" data-metric="costPerKm">RM/km</button>
+                </div>
+            </div>
+            <div class="all-vehicles-table-wrap" id="allVehiclesTableWrap">
+                <table class="all-vehicles-table" id="allVehiclesTable">
+                    <thead id="allVehiclesTableHead">
+                        <tr>
+                            <th data-sort="plate">车牌 <span class="sort-icon">⇅</span></th>
+                            <th data-sort="plant">分厂 <span class="sort-icon">⇅</span></th>
+                            <th data-sort="brand">品牌 <span class="sort-icon">⇅</span></th>
+                            <th data-sort="type">车型 <span class="sort-icon">⇅</span></th>
+                            <th data-sort="totalLiter" class="col-metric-header">总油耗(L) <span class="sort-icon">⇅</span></th>
+                            <th data-sort="totalCost" class="col-metric-header">总花费(RM) <span class="sort-icon">⇅</span></th>
+                            <th data-sort="totalM3" class="col-metric-header">总m³ <span class="sort-icon">⇅</span></th>
+                            <th data-sort="totalTrip" class="col-metric-header">总趟 <span class="sort-icon">⇅</span></th>
+                            <th data-sort="literPerM3" class="col-metric-header hidden">L/m³ <span class="sort-icon">⇅</span></th>
+                            <th data-sort="costPerM3" class="col-metric-header hidden">RM/m³ <span class="sort-icon">⇅</span></th>
+                            <th data-sort="literPerTrip" class="col-metric-header hidden">L/趟 <span class="sort-icon">⇅</span></th>
+                            <th data-sort="costPerTrip" class="col-metric-header hidden">RM/趟 <span class="sort-icon">⇅</span></th>
+                            <th data-sort="literPerKm" class="col-metric-header hidden">L/km <span class="sort-icon">⇅</span></th>
+                            <th data-sort="costPerKm" class="col-metric-header hidden">RM/km <span class="sort-icon">⇅</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="allVehiclesTableBody">
+                        <tr><td colspan="14" style="text-align:center;padding:2rem;color:#8ba3bb;">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ===== 模态框：Branch 选择 ===== -->
+        <div class="modal-overlay" id="plantModal">
+            <div class="modal-box">
+                <button class="modal-close" id="plantModalClose"><i class="fas fa-times"></i></button>
+                <div class="modal-title"><i class="fas fa-building"></i> 选择 Branch</div>
+                <div class="modal-subtitle">点击 Branch 查看对应车辆数据</div>
+                <div class="modal-buttons" id="plantModalButtons">
+                    <button class="modal-btn all-btn" data-plant="all">📋 全部</button>
+                    <button class="modal-btn" data-plant="Selangau">
+                        <span class="plant-dot" style="background:#00BCD4;"></span> Selangau
+                    </button>
+                    <button class="modal-btn" data-plant="Stabau">
+                        <span class="plant-dot" style="background:#E53935;"></span> Stabau
+                    </button>
+                    <button class="modal-btn" data-plant="SG Merah">
+                        <span class="plant-dot" style="background:#1A73E8;"></span> SG Merah
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 模态框：车牌选择 ===== -->
+        <div class="modal-overlay" id="plateModal">
+            <div class="modal-box">
+                <button class="modal-close" id="plateModalClose"><i class="fas fa-times"></i></button>
+                <div class="modal-title"><i class="fas fa-car"></i> 选择车辆</div>
+                <div class="plate-filter-controls">
+                    <div class="control-group">
+                        <label><i class="far fa-calendar-alt"></i> 年份</label>
+                        <select id="plateYearFilter">
+                            <option value="all">全部</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-subtitle" id="plateModalSubtitle">点击车牌查看该车辆完整数据</div>
+                <div class="plate-grid" id="plateGrid"></div>
+                <div style="margin-top:0.8rem;">
+                    <button class="modal-btn all-btn" id="plateAllBtn" style="width:100%;">📋 全部</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 模态框：车型选择 ===== -->
+        <div class="modal-overlay" id="typeModal">
+            <div class="modal-box">
+                <button class="modal-close" id="typeModalClose"><i class="fas fa-times"></i></button>
+                <div class="modal-title"><i class="fas fa-tag"></i> 选择车型</div>
+                <div class="modal-subtitle" id="typeModalSubtitle">点击车型查看对应车辆数据</div>
+                <div class="type-grid" id="typeGrid"></div>
+                <div style="margin-top:0.8rem;">
+                    <button class="modal-btn all-btn" id="typeAllBtn" style="width:100%;">📋 全部</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ---------- 配置 ----------
+            const API_URL = 'https://script.google.com/macros/s/AKfycbzQxv0PUqgcrxuPhWLchJvgbNR_BremJWtVbKierGQxCIOJYqt4w3L7dfM5KC3UN-rYSw/exec';
+
+            // DOM 引用
+            const totalVehiclesEl = document.getElementById('totalVehicles');
+            const totalMonthsEl = document.getElementById('totalMonths');
+            const totalTypesEl = document.getElementById('totalTypes');
+            const totalFuelEl = document.getElementById('totalFuel');
+            const totalFuelFilterLabel = document.getElementById('totalFuelFilterLabel');
+            const totalCostEl = document.getElementById('totalCost');
+            const totalCostFilterLabel = document.getElementById('totalCostFilterLabel');
+            const totalM3El = document.getElementById('totalM3');
+            const totalM3FilterLabel = document.getElementById('totalM3FilterLabel');
+            const totalTripEl = document.getElementById('totalTrip');
+            const totalTripFilterLabel = document.getElementById('totalTripFilterLabel');
+            const statusBadge = document.getElementById('statusBadge');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const exportBtn = document.getElementById('exportBtn');
+            const yearFilter = document.getElementById('yearFilter');
+            const vehicleCountCard = document.getElementById('vehicleCountCard');
+            const coverMonthsCard = document.getElementById('coverMonthsCard');
+            const typeCard = document.getElementById('typeCard');
+            const resetBtn = document.getElementById('resetBtn');
+            const currentMonthDisplay = document.getElementById('currentMonthDisplay');
+            const rankListContainer = document.getElementById('rankListContainer');
+            const comparisonView = document.getElementById('comparisonView');
+            const comparisonContainer = document.getElementById('comparisonContainer');
+            const activeFilterBadge = document.getElementById('activeFilterBadge');
+            const trendMetricToggles = document.getElementById('trendMetricToggles');
+
+            const allVehiclesTableBody = document.getElementById('allVehiclesTableBody');
+            const allVehiclesCount = document.getElementById('allVehiclesCount');
+            const allVehiclesSort = document.getElementById('allVehiclesSort');
+            const allVehiclesMonthGroup = document.getElementById('allVehiclesMonthGroup');
+            const allVehiclesTableHead = document.getElementById('allVehiclesTableHead');
+
+            const plantModal = document.getElementById('plantModal');
+            const plantModalClose = document.getElementById('plantModalClose');
+            const plantModalButtons = document.getElementById('plantModalButtons');
+            const plateModal = document.getElementById('plateModal');
+            const plateModalClose = document.getElementById('plateModalClose');
+            const plateGrid = document.getElementById('plateGrid');
+            const plateModalSubtitle = document.getElementById('plateModalSubtitle');
+            const plateAllBtn = document.getElementById('plateAllBtn');
+            const plateYearFilter = document.getElementById('plateYearFilter');
+
+            const typeModal = document.getElementById('typeModal');
+            const typeModalClose = document.getElementById('typeModalClose');
+            const typeGrid = document.getElementById('typeGrid');
+            const typeModalSubtitle = document.getElementById('typeModalSubtitle');
+            const typeAllBtn = document.getElementById('typeAllBtn');
+
+            let allData = [];
+            let trendChartInstance = null;
+            let currentSort = 'totalLiter';
+            let currentPlantFilter = 'all';
+            let currentPlateFilter = 'all';
+            let currentTypeFilter = 'all';
+            let expandedRows = new Set();
+            let activeMetrics = new Set(['totalLiter', 'totalCost', 'totalM3', 'totalTrip']);
+            let trendActiveMetrics = new Set(['totalLiter']);
+
+            let branchYear = 'all';
+            let branchMonths = new Set(['all']);
+            let branchSortBy = 'plate';
+
+            let allVehiclesMonthFilter = new Set(['all']);
+            let allVehiclesSortKey = 'totalLiter';
+            let allVehiclesActiveMetrics = new Set(['totalLiter', 'totalCost', 'totalM3', 'totalTrip']);
+
+            let plateFilterYear = 'all';
+            let singleVehicleMonthFilter = 'all';
+
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+            currentMonthDisplay.textContent = currentYear + '-' + currentMonth;
+
+            // ---------- 工具函数 ----------
+            function formatNumber(v) {
+                if (v === null || v === undefined || isNaN(v)) return '—';
+                return Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            function formatNumberShort(v) {
+                if (v === null || v === undefined || isNaN(v)) return '—';
+                if (Math.abs(v) >= 1000000) return (v / 1000000).toFixed(1) + 'M';
+                if (Math.abs(v) >= 1000) return (v / 1000).toFixed(1) + 'k';
+                return v.toFixed(1);
+            }
+
+            function formatNumberCompact(v) {
+                if (v === null || v === undefined || isNaN(v)) return '—';
+                return Number(v).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 1 });
+            }
+
+            function formatNumberInt(v) {
+                if (v === null || v === undefined || isNaN(v)) return '—';
+                return Number(v).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            }
+
+            function safeNumber(v) {
+                if (v === null || v === undefined || v === '' || v === 'N/A' || v === 'NA' || v === '#N/A') return null;
+                const num = typeof v === 'number' ? v : parseFloat(String(v).replace(/[RM,]/gi, '').trim());
+                return isNaN(num) ? null : num;
+            }
+
+            function isEmptyMonth(m) {
+                return [
+                    m.literPerM3, m.costPerM3,
+                    m.literPerTrip, m.costPerTrip,
+                    m.literPerKm, m.costPerKm,
+                    m.totalM3, m.totalTrip,
+                    m.totalLiter, m.totalCost
+                ].every(v => safeNumber(v) === null);
+            }
+
+            function formatMonthDisplay(raw) {
+                if (!raw) return '—';
+                let s = String(raw);
+                let m = s.match(/^(\d{4})-(\d{2})-\d{2}T/);
+                if (m) return m[1] + '-' + m[2];
+                const map = { jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06', jul: '07', aug: '08',
+                    sep: '09', oct: '10', nov: '11', dec: '12' };
+                let em = s.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[-\s](\d{4})/i);
+                if (em) return em[2] + '-' + map[em[1].toLowerCase()];
+                let yyyymm = s.match(/(\d{4})[-\/](\d{1,2})/);
+                if (yyyymm) return yyyymm[1] + '-' + yyyymm[2].padStart(2, '0');
+                let mmyyyy = s.match(/(\d{1,2})[\/](\d{4})/);
+                if (mmyyyy) return mmyyyy[2] + '-' + mmyyyy[1].padStart(2, '0');
+                if (/^\d{4}-\d{2}$/.test(s)) return s;
+                return s;
+            }
+
+            function parseYearMonth(str) {
+                if (!str) return null;
+                let m = String(str).match(/^(\d{4})-(\d{2})$/);
+                return m ? { year: m[1], month: m[2] } : null;
+            }
+
+            function isMonthVisible(monthDisplay) {
+                if (!monthDisplay) return false;
+                const parsed = parseYearMonth(monthDisplay);
+                if (!parsed) return false;
+                const y = parseInt(parsed.year);
+                const m = parseInt(parsed.month);
+                if (y < currentYear) return true;
+                if (y > currentYear) return false;
+                return m <= parseInt(currentMonth);
+            }
+
+            function getTypeCombination(vehicle) {
+                const brand = (vehicle.brand || '').trim();
+                const type = (vehicle.type || '').trim();
+                if (!brand && !type) return null;
+                if (!brand) return type;
+                if (!type) return brand;
+                return brand + ' ' + type;
+            }
+
+            // ---------- 获取年份筛选对应的月份范围 ----------
+            function getAnalyticsMonthRange(selectedYear) {
+                let months = [];
+
+                if (selectedYear === 'all') {
+                    const date = new Date(currentYear, parseInt(currentMonth) - 1, 1);
+                    for (let i = 0; i < 12; i++) {
+                        date.setMonth(date.getMonth() - 1);
+                    }
+                    for (let i = 0; i < 12; i++) {
+                        date.setMonth(date.getMonth() + 1);
+                        const y = date.getFullYear();
+                        const m = String(date.getMonth() + 1).padStart(2, '0');
+                        months.push(y + '-' + m);
+                    }
+                    return months;
+                }
+
+                const year = parseInt(selectedYear);
+                const isCurrentYear = year === currentYear;
+
+                let endMonth = 12;
+                if (isCurrentYear) {
+                    endMonth = parseInt(currentMonth) - 1;
+                }
+
+                for (let m = 1; m <= endMonth; m++) {
+                    months.push(selectedYear + '-' + String(m).padStart(2, '0'));
+                }
+
+                return months;
+            }
+
+            // ---------- 获取趋势图数据 ----------
+            function getTrendData(vehicles, year, monthSet, metricKey) {
+                const targetMonths = getAnalyticsMonthRange(year);
+                const monthKeys = new Set(targetMonths);
+
+                const monthlyData = {};
+                targetMonths.forEach(key => { monthlyData[key] = 0; });
+
+                vehicles.forEach(v => {
+                    (v.months || []).forEach(m => {
+                        if (isEmptyMonth(m)) return;
+                        const display = formatMonthDisplay(m.month);
+                        if (display.indexOf('TOTAL') !== -1 || display.indexOf('AVERAGE') !== -1) return;
+                        if (!monthKeys.has(display)) return;
+                        if (!isMonthVisible(display)) return;
+
+                        if (!monthSet.has('all')) {
+                            const parsed = parseYearMonth(display);
+                            if (!parsed) return;
+                            if (!monthSet.has(parsed.month)) return;
+                        }
+
+                        const val = safeNumber(m[metricKey]);
+                        if (val !== null) monthlyData[display] += val;
+                    });
+                });
+
+                return targetMonths.map(label => monthlyData[label] || 0);
+            }
+
+            // ---------- 核心：获取指定年份/月份的车辆汇总 ----------
+            function getVehicleSummaryByFilter(vehicle, year, monthSet) {
+                let filteredMonths = (vehicle.months || []).filter(m => {
+                    if (isEmptyMonth(m)) return false;
+                    const display = formatMonthDisplay(m.month);
+                    if (display.indexOf('TOTAL') !== -1 || display.indexOf('AVERAGE') !== -1) return false;
+                    if (!isMonthVisible(display)) return false;
+
+                    if (year !== 'all') {
+                        if (!display.startsWith(year + '-')) return false;
+                    }
+
+                    if (!monthSet.has('all')) {
+                        const parsed = parseYearMonth(display);
+                        if (!parsed) return false;
+                        if (!monthSet.has(parsed.month)) return false;
+                    }
+
+                    return true;
+                });
+
+                let totalLiter = 0,
+                    totalCost = 0;
+                let totalM3 = 0,
+                    totalTrip = 0;
+                let sumLiterPerM3 = 0,
+                    countLiterPerM3 = 0;
+                let sumCostPerM3 = 0,
+                    countCostPerM3 = 0;
+                let sumLiterPerTrip = 0,
+                    countLiterPerTrip = 0;
+                let sumCostPerTrip = 0,
+                    countCostPerTrip = 0;
+                let sumLiterPerKm = 0,
+                    countLiterPerKm = 0;
+                let sumCostPerKm = 0,
+                    countCostPerKm = 0;
+
+                filteredMonths.forEach(m => {
+                    const fuel = safeNumber(m.totalLiter);
+                    const cost = safeNumber(m.totalCost);
+                    const m3 = safeNumber(m.totalM3);
+                    const trip = safeNumber(m.totalTrip);
+                    const lm3 = safeNumber(m.literPerM3);
+                    const cm3 = safeNumber(m.costPerM3);
+                    const lTrip = safeNumber(m.literPerTrip);
+                    const cTrip = safeNumber(m.costPerTrip);
+                    const lkm = safeNumber(m.literPerKm);
+                    const ckm = safeNumber(m.costPerKm);
+
+                    if (fuel !== null) totalLiter += fuel;
+                    if (cost !== null) totalCost += cost;
+                    if (m3 !== null) totalM3 += m3;
+                    if (trip !== null) totalTrip += trip;
+                    if (lm3 !== null) { sumLiterPerM3 += lm3;
+                        countLiterPerM3++; }
+                    if (cm3 !== null) { sumCostPerM3 += cm3;
+                        countCostPerM3++; }
+                    if (lTrip !== null) { sumLiterPerTrip += lTrip;
+                        countLiterPerTrip++; }
+                    if (cTrip !== null) { sumCostPerTrip += cTrip;
+                        countCostPerTrip++; }
+                    if (lkm !== null) { sumLiterPerKm += lkm;
+                        countLiterPerKm++; }
+                    if (ckm !== null) { sumCostPerKm += ckm;
+                        countCostPerKm++; }
+                });
+
+                return {
+                    plate: vehicle.vehicleNumber || '未知',
+                    plant: vehicle.plant || '—',
+                    brand: vehicle.brand || '—',
+                    type: vehicle.type || '—',
+                    totalLiter: totalLiter,
+                    totalCost: totalCost,
+                    totalM3: totalM3,
+                    totalTrip: totalTrip,
+                    literPerM3: countLiterPerM3 > 0 ? sumLiterPerM3 / countLiterPerM3 : 0,
+                    costPerM3: countCostPerM3 > 0 ? sumCostPerM3 / countCostPerM3 : 0,
+                    literPerTrip: countLiterPerTrip > 0 ? sumLiterPerTrip / countLiterPerTrip : 0,
+                    costPerTrip: countCostPerTrip > 0 ? sumCostPerTrip / countCostPerTrip : 0,
+                    literPerKm: countLiterPerKm > 0 ? sumLiterPerKm / countLiterPerKm : 0,
+                    costPerKm: countCostPerKm > 0 ? sumCostPerKm / countCostPerKm : 0,
+                    months: filteredMonths,
+                    monthCount: filteredMonths.length
+                };
+            }
+
+            // ---------- 获取车辆汇总（全部可见月份） ----------
+            function getVehicleSummaryAll(vehicle) {
+                let totalLiter = 0,
+                    totalCost = 0;
+                let totalM3 = 0,
+                    totalTrip = 0;
+                let sumLiterPerM3 = 0,
+                    countLiterPerM3 = 0;
+                let sumCostPerM3 = 0,
+                    countCostPerM3 = 0;
+                let sumLiterPerTrip = 0,
+                    countLiterPerTrip = 0;
+                let sumCostPerTrip = 0,
+                    countCostPerTrip = 0;
+                let sumLiterPerKm = 0,
+                    countLiterPerKm = 0;
+                let sumCostPerKm = 0,
+                    countCostPerKm = 0;
+
+                (vehicle.months || []).forEach(m => {
+                    if (isEmptyMonth(m)) return;
+                    const display = formatMonthDisplay(m.month);
+                    if (display.indexOf('TOTAL') !== -1 || display.indexOf('AVERAGE') !== -1) return;
+                    if (!isMonthVisible(display)) return;
+
+                    const fuel = safeNumber(m.totalLiter);
+                    const cost = safeNumber(m.totalCost);
+                    const m3 = safeNumber(m.totalM3);
+                    const trip = safeNumber(m.totalTrip);
+                    const lm3 = safeNumber(m.literPerM3);
+                    const cm3 = safeNumber(m.costPerM3);
+                    const lTrip = safeNumber(m.literPerTrip);
+                    const cTrip = safeNumber(m.costPerTrip);
+                    const lkm = safeNumber(m.literPerKm);
+                    const ckm = safeNumber(m.costPerKm);
+
+                    if (fuel !== null) totalLiter += fuel;
+                    if (cost !== null) totalCost += cost;
+                    if (m3 !== null) totalM3 += m3;
+                    if (trip !== null) totalTrip += trip;
+                    if (lm3 !== null) { sumLiterPerM3 += lm3;
+                        countLiterPerM3++; }
+                    if (cm3 !== null) { sumCostPerM3 += cm3;
+                        countCostPerM3++; }
+                    if (lTrip !== null) { sumLiterPerTrip += lTrip;
+                        countLiterPerTrip++; }
+                    if (cTrip !== null) { sumCostPerTrip += cTrip;
+                        countCostPerTrip++; }
+                    if (lkm !== null) { sumLiterPerKm += lkm;
+                        countLiterPerKm++; }
+                    if (ckm !== null) { sumCostPerKm += ckm;
+                        countCostPerKm++; }
+                });
+
+                return {
+                    plate: vehicle.vehicleNumber || '未知',
+                    plant: vehicle.plant || '—',
+                    brand: vehicle.brand || '—',
+                    type: vehicle.type || '—',
+                    totalLiter: totalLiter,
+                    totalCost: totalCost,
+                    totalM3: totalM3,
+                    totalTrip: totalTrip,
+                    literPerM3: countLiterPerM3 > 0 ? sumLiterPerM3 / countLiterPerM3 : 0,
+                    costPerM3: countCostPerM3 > 0 ? sumCostPerM3 / countCostPerM3 : 0,
+                    literPerTrip: countLiterPerTrip > 0 ? sumLiterPerTrip / countLiterPerTrip : 0,
+                    costPerTrip: countCostPerTrip > 0 ? sumCostPerTrip / countCostPerTrip : 0,
+                    literPerKm: countLiterPerKm > 0 ? sumLiterPerKm / countLiterPerKm : 0,
+                    costPerKm: countCostPerKm > 0 ? sumCostPerKm / countCostPerKm : 0,
+                    months: vehicle.months || [],
+                    monthCount: (vehicle.months || []).filter(m => !isEmptyMonth(m)).length
+                };
+            }
+
+            // ---------- 统计数据 ----------
+            function calcStats(vehicles) {
+                let totalFuel = 0,
+                    totalCost = 0;
+                let totalM3 = 0,
+                    totalTrip = 0;
+                let monthSet = new Set();
+                let allMonths = [];
+                vehicles.forEach(v => {
+                    (v.months || []).forEach(m => {
+                        if (isEmptyMonth(m)) return;
+                        let fuel = safeNumber(m.totalLiter);
+                        let cost = safeNumber(m.totalCost);
+                        let m3 = safeNumber(m.totalM3);
+                        let trip = safeNumber(m.totalTrip);
+                        if (fuel !== null) totalFuel += fuel;
+                        if (cost !== null) totalCost += cost;
+                        if (m3 !== null) totalM3 += m3;
+                        if (trip !== null) totalTrip += trip;
+                        if (m.month) {
+                            let d = formatMonthDisplay(m.month);
+                            monthSet.add(d);
+                            allMonths.push(d);
+                        }
+                    });
+                });
+                let years = new Set();
+                allMonths.forEach(d => { let p = parseYearMonth(d); if (p) years.add(p.year); });
+                return {
+                    vehicleCount: vehicles.length,
+                    monthCount: monthSet.size,
+                    totalFuel: totalFuel,
+                    totalCost: totalCost,
+                    totalM3: totalM3,
+                    totalTrip: totalTrip,
+                    years: Array.from(years).sort()
+                };
+            }
+
+            // ---------- 渲染趋势图 ----------
+            function renderTrendChart(vehicles, year, monthSet) {
+                const canvas = document.getElementById('trendChart');
+                if (!canvas) return;
+
+                const targetMonths = getAnalyticsMonthRange(year);
+
+                if (trendChartInstance) {
+                    trendChartInstance.destroy();
+                    trendChartInstance = null;
+                }
+
+                const metricConfigs = [{
+                    key: 'totalLiter',
+                    label: '总油耗',
+                    color: '#1a5fb4',
+                    unit: 'L'
+                }, {
+                    key: 'totalCost',
+                    label: '总花费',
+                    color: '#f5a623',
+                    unit: 'RM'
+                }, {
+                    key: 'totalM3',
+                    label: '总 m³',
+                    color: '#26a69a',
+                    unit: 'm³'
+                }, {
+                    key: 'totalTrip',
+                    label: '总 趟',
+                    color: '#e53935',
+                    unit: '趟'
+                }];
+
+                const activeConfigs = metricConfigs.filter(c => trendActiveMetrics.has(c.key));
+
+                if (activeConfigs.length === 0) {
+                    const ctx = canvas.getContext('2d');
+                    trendChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: targetMonths,
+                            datasets: []
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: { enabled: false }
+                            },
+                            scales: {
+                                y: { display: true },
+                                x: { display: true }
+                            }
+                        }
+                    });
+                    return;
+                }
+
+                const datasets = activeConfigs.map(cfg => {
+                    const data = getTrendData(vehicles, year, monthSet, cfg.key);
+                    return {
+                        label: cfg.label + ' (' + cfg.unit + ')',
+                        data: data,
+                        borderColor: cfg.color,
+                        backgroundColor: cfg.color + '20',
+                        borderWidth: 2.5,
+                        pointBackgroundColor: cfg.color,
+                        pointBorderColor: 'white',
+                        pointBorderWidth: 1.5,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        fill: false,
+                        tension: 0.3,
+                        spanGaps: false
+                    };
+                });
+
+                const ctx = canvas.getContext('2d');
+                trendChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: targetMonths,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    font: { size: 10 },
+                                    boxWidth: 12,
+                                    padding: 8
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': ' + context.parsed.y.toLocaleString();
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                                        if (value >= 1000) return (value / 1000).toFixed(1) + 'k';
+                                        return value;
+                                    },
+                                    font: { size: 10 }
+                                },
+                                grid: { color: 'rgba(0,0,0,0.04)' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { size: 9 }, maxRotation: 30 }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // ---------- 排行榜 ----------
+            function renderRanking(vehicles, sortKey, year, monthSet) {
+                if (!vehicles.length) {
+                    rankListContainer.innerHTML = `<div class="rank-empty"><i class="fas fa-inbox"></i> 暂无数据</div>`;
+                    return;
+                }
+
+                const targetMonths = getAnalyticsMonthRange(year);
+                const monthKeys = new Set(targetMonths);
+
+                const rankData = vehicles.map(v => {
+                    let totalLiter = 0,
+                        totalCost = 0;
+                    let totalM3 = 0,
+                        totalTrip = 0;
+                    let sumLiterPerM3 = 0,
+                        countLiterPerM3 = 0;
+                    let sumCostPerM3 = 0,
+                        countCostPerM3 = 0;
+                    let sumLiterPerTrip = 0,
+                        countLiterPerTrip = 0;
+                    let sumCostPerTrip = 0,
+                        countCostPerTrip = 0;
+                    let sumLiterPerKm = 0,
+                        countLiterPerKm = 0;
+                    let sumCostPerKm = 0,
+                        countCostPerKm = 0;
+                    let monthCount = 0;
+
+                    (v.months || []).forEach(m => {
+                        if (isEmptyMonth(m)) return;
+                        const display = formatMonthDisplay(m.month);
+                        if (display.indexOf('TOTAL') !== -1 || display.indexOf('AVERAGE') !== -1) return;
+                        if (!monthKeys.has(display)) return;
+                        if (!isMonthVisible(display)) return;
+
+                        if (!monthSet.has('all')) {
+                            const parsed = parseYearMonth(display);
+                            if (!parsed) return;
+                            if (!monthSet.has(parsed.month)) return;
+                        }
+
+                        monthCount++;
+                        const fuel = safeNumber(m.totalLiter);
+                        const cost = safeNumber(m.totalCost);
+                        const m3 = safeNumber(m.totalM3);
+                        const trip = safeNumber(m.totalTrip);
+                        const lm3 = safeNumber(m.literPerM3);
+                        const cm3 = safeNumber(m.costPerM3);
+                        const lTrip = safeNumber(m.literPerTrip);
+                        const cTrip = safeNumber(m.costPerTrip);
+                        const lkm = safeNumber(m.literPerKm);
+                        const ckm = safeNumber(m.costPerKm);
+
+                        if (fuel !== null) totalLiter += fuel;
+                        if (cost !== null) totalCost += cost;
+                        if (m3 !== null) totalM3 += m3;
+                        if (trip !== null) totalTrip += trip;
+                        if (lm3 !== null) { sumLiterPerM3 += lm3;
+                            countLiterPerM3++; }
+                        if (cm3 !== null) { sumCostPerM3 += cm3;
+                            countCostPerM3++; }
+                        if (lTrip !== null) { sumLiterPerTrip += lTrip;
+                            countLiterPerTrip++; }
+                        if (cTrip !== null) { sumCostPerTrip += cTrip;
+                            countCostPerTrip++; }
+                        if (lkm !== null) { sumLiterPerKm += lkm;
+                            countLiterPerKm++; }
+                        if (ckm !== null) { sumCostPerKm += ckm;
+                            countCostPerKm++; }
+                    });
+
+                    if (monthCount === 0) return null;
+
+                    return {
+                        plate: v.vehicleNumber || '未知',
+                        plant: v.plant || '—',
+                        totalLiter: totalLiter,
+                        totalCost: totalCost,
+                        totalM3: totalM3,
+                        totalTrip: totalTrip,
+                        literPerM3: countLiterPerM3 > 0 ? sumLiterPerM3 / countLiterPerM3 : 0,
+                        costPerM3: countCostPerM3 > 0 ? sumCostPerM3 / countCostPerM3 : 0,
+                        literPerTrip: countLiterPerTrip > 0 ? sumLiterPerTrip / countLiterPerTrip : 0,
+                        costPerTrip: countCostPerTrip > 0 ? sumCostPerTrip / countCostPerTrip : 0,
+                        literPerKm: countLiterPerKm > 0 ? sumLiterPerKm / countLiterPerKm : 0,
+                        costPerKm: countCostPerKm > 0 ? sumCostPerKm / countCostPerKm : 0,
+                        monthCount: monthCount
+                    };
+                }).filter(item => item !== null);
+
+                if (!rankData.length) {
+                    const yearDisplay = year === 'all' ? '最近 12 个月' : year + ' 年';
+                    rankListContainer.innerHTML =
+                        `<div class="rank-empty"><i class="fas fa-inbox"></i> ${yearDisplay} 暂无数据</div>`;
+                    return;
+                }
+
+                const sorted = [...rankData].sort((a, b) => {
+                    const va = a[sortKey] || 0;
+                    const vb = b[sortKey] || 0;
+                    return vb - va;
+                });
+
+                const top10 = sorted.slice(0, 10);
+
+                let html = `<ul class="rank-list">`;
+                top10.forEach((item, index) => {
+                    let posClass = '';
+                    let icon = '';
+                    if (index === 0) { posClass = 'gold';
+                        icon = '🥇'; } else if (index === 1) { posClass = 'silver';
+                        icon = '🥈'; } else if (index === 2) { posClass = 'bronze';
+                        icon = '🥉'; } else { icon = `#${index+1}`; }
+
+                    let valueDisplay = '';
+                    if (sortKey === 'totalLiter') valueDisplay = formatNumberShort(item.totalLiter) + ' L';
+                    else if (sortKey === 'totalCost') valueDisplay = 'RM ' + formatNumberShort(item.totalCost);
+                    else if (sortKey === 'totalM3') valueDisplay = formatNumberShort(item.totalM3) + ' m³';
+                    else if (sortKey === 'totalTrip') valueDisplay = formatNumberShort(item.totalTrip) + ' 趟';
+                    else if (sortKey === 'literPerM3') valueDisplay = item.literPerM3.toFixed(3) + ' L/m³';
+                    else if (sortKey === 'costPerM3') valueDisplay = 'RM ' + item.costPerM3.toFixed(3) + '/m³';
+                    else if (sortKey === 'literPerTrip') valueDisplay = item.literPerTrip.toFixed(2) + ' L/趟';
+                    else if (sortKey === 'costPerTrip') valueDisplay = 'RM ' + item.costPerTrip.toFixed(2) + '/趟';
+                    else if (sortKey === 'literPerKm') valueDisplay = item.literPerKm.toFixed(3) + ' L/km';
+
+                    const plantColor = item.plant === 'Selangau' ? '#00BCD4' :
+                        item.plant === 'Stabau' ? '#E53935' :
+                        item.plant === 'SG Merah' ? '#1A73E8' : '#8ba3bb';
+
+                    html += `
+                        <li class="rank-item">
+                            <span class="rank-pos ${posClass}">${icon}</span>
+                            <span class="rank-name">${item.plate}</span>
+                            <span class="rank-plant" style="background:${plantColor}20;color:${plantColor};">${item.plant}</span>
+                            <span class="rank-value">${valueDisplay}</span>
+                        </li>
+                    `;
+                });
+                html += `</ul>`;
+
+                if (rankData.length > 10) {
+                    html += `<div class="rank-more">还有 ${rankData.length - 10} 辆车未显示</div>`;
+                }
+
+                rankListContainer.innerHTML = html;
+            }
+
+            // ---------- 更新分析报表 ----------
+            function updateAnalytics(vehicles) {
+                const year = branchYear;
+                const monthSet = branchMonths;
+                renderTrendChart(vehicles, year, monthSet);
+                renderRanking(vehicles, currentSort, year, monthSet);
+            }
+
+            // ---------- 渲染 Branch 视图 ----------
+            function renderBranchView(vehicles) {
+                if (!vehicles.length) {
+                    comparisonContainer.innerHTML =
+                        `<div class="empty-state"><i class="fas fa-inbox"></i><p>暂无匹配的车辆数据</p></div>`;
+                    return;
+                }
+
+                const groups = {};
+                vehicles.forEach(v => {
+                    const s = getVehicleSummaryByFilter(v, branchYear, branchMonths);
+                    if (s.monthCount === 0) return;
+                    const key = (s.brand || '未知品牌') + '|' + (s.type || '未知车型');
+                    if (!groups[key]) groups[key] = [];
+                    groups[key].push(s);
+                });
+
+                Object.keys(groups).forEach(key => {
+                    const sortKey = branchSortBy;
+                    if (sortKey === 'plate') {
+                        groups[key].sort((a, b) => a.plate.localeCompare(b.plate));
+                    } else {
+                        groups[key].sort((a, b) => {
+                            const va = a[sortKey] || 0;
+                            const vb = b[sortKey] || 0;
+                            return vb - va;
+                        });
+                    }
+                });
+
+                const sortedKeys = Object.keys(groups).sort();
+
+                if (sortedKeys.length === 0) {
+                    const yearDisplay = branchYear === 'all' ? '全部年份' : branchYear + ' 年';
+                    const monthDisplay = branchMonths.has('all') ? '全部月份' :
+                        Array.from(branchMonths).sort().join('、') + ' 月';
+                    comparisonContainer.innerHTML =
+                        `<div class="empty-state"><i class="fas fa-calendar-times"></i><p>${yearDisplay} ${monthDisplay} 暂无数据</p><p style="font-size:0.85rem;color:#8ba3bb;">请调整筛选条件查看其他数据</p></div>`;
+                    return;
+                }
+
+                const metricConfig = {
+                    totalLiter: { label: '总油耗', unit: 'L', field: 'totalLiter', format: v => formatNumberCompact(v) +
+                            ' L' },
+                    totalCost: { label: '总花费', unit: 'RM', field: 'totalCost', format: v => 'RM ' + formatNumberCompact(
+                            v) },
+                    totalM3: { label: '总 m³', unit: 'm³', field: 'totalM3', format: v => formatNumberCompact(v) + ' m³' },
+                    totalTrip: { label: '总 趟', unit: '趟', field: 'totalTrip', format: v => formatNumberCompact(v) +
+                        ' 趟' },
+                    literPerM3: { label: 'L/m³', unit: 'L/m³', field: 'literPerM3', format: v => v.toFixed(2) },
+                    costPerM3: { label: 'RM/m³', unit: 'RM/m³', field: 'costPerM3', format: v => 'RM ' + v.toFixed(2) },
+                    literPerTrip: { label: 'L/趟', unit: 'L/趟', field: 'literPerTrip', format: v => v.toFixed(2) },
+                    costPerTrip: { label: 'RM/趟', unit: 'RM/趟', field: 'costPerTrip', format: v => 'RM ' + v.toFixed(2) },
+                    literPerKm: { label: 'L/km', unit: 'L/km', field: 'literPerKm', format: v => v.toFixed(3) },
+                    costPerKm: { label: 'RM/km', unit: 'RM/km', field: 'costPerKm', format: v => 'RM ' + v.toFixed(3) }
+                };
+
+                let toggleHtml = `<div class="branch-metric-toggles">`;
+                Object.keys(metricConfig).forEach(key => {
+                    const isActive = activeMetrics.has(key);
+                    toggleHtml +=
+                        `<button class="branch-metric-toggle ${isActive ? 'active' : ''}" data-metric="${key}">${metricConfig[key].label}</button>`;
+                });
+                toggleHtml += `</div>`;
+
+                const activeMetricKeys = Array.from(activeMetrics);
+                const activeMetricConfigs = activeMetricKeys.map(k => ({ key: k, ...metricConfig[k] }));
+
+                const yearDisplay = branchYear === 'all' ? '全部年份' : branchYear + ' 年';
+                const monthDisplay = branchMonths.has('all') ? '全部月份' :
+                    Array.from(branchMonths).sort().join('、') + ' 月';
+
+                let html = `
+                    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.8rem;margin-bottom:1rem;">
+                        <div style="font-size:0.85rem;color:#5f7f9f;background:#f5f9ff;padding:0.3rem 1rem;border-radius:30px;">
+                            <i class="far fa-calendar-alt"></i> <strong style="color:#0b2b4a;">${yearDisplay}</strong>
+                            <span style="margin:0 0.3rem;">·</span>
+                            <strong style="color:#0b2b4a;">${monthDisplay}</strong>
+                            <span style="margin:0 0.3rem;">·</span>
+                            排序: <strong style="color:#0b2b4a;">${branchSortBy === 'plate' ? '车牌' : metricConfig[branchSortBy]?.label || branchSortBy}</strong>
+                        </div>
+                    </div>
+                `;
+
+                html += toggleHtml;
+
+                html += `
+                    <div class="branch-controls">
+                        <div class="control-group">
+                            <label><i class="fas fa-sort"></i> 排序</label>
+                            <select id="branchSortSelect">
+                                <option value="plate" ${branchSortBy === 'plate' ? 'selected' : ''}>车牌</option>
+                                <option value="totalLiter" ${branchSortBy === 'totalLiter' ? 'selected' : ''}>总油耗</option>
+                                <option value="totalCost" ${branchSortBy === 'totalCost' ? 'selected' : ''}>总花费</option>
+                                <option value="totalM3" ${branchSortBy === 'totalM3' ? 'selected' : ''}>总 m³</option>
+                                <option value="totalTrip" ${branchSortBy === 'totalTrip' ? 'selected' : ''}>总 趟</option>
+                                <option value="literPerM3" ${branchSortBy === 'literPerM3' ? 'selected' : ''}>L/m³</option>
+                                <option value="costPerM3" ${branchSortBy === 'costPerM3' ? 'selected' : ''}>RM/m³</option>
+                                <option value="literPerTrip" ${branchSortBy === 'literPerTrip' ? 'selected' : ''}>L/趟</option>
+                                <option value="costPerTrip" ${branchSortBy === 'costPerTrip' ? 'selected' : ''}>RM/趟</option>
+                                <option value="literPerKm" ${branchSortBy === 'literPerKm' ? 'selected' : ''}>L/km</option>
+                                <option value="costPerKm" ${branchSortBy === 'costPerKm' ? 'selected' : ''}>RM/km</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label><i class="far fa-calendar-check"></i> 月份</label>
+                            <div class="month-btn-group" id="branchMonthGroup">
+                                <button class="month-btn active" data-month="all">全部</button>
+                                ${['01','02','03','04','05','06','07','08','09','10','11','12'].map(m => {
+                                    const isActive = branchMonths.has(m);
+                                    return `<button class="month-btn ${isActive ? 'active' : ''}" data-month="${m}">${parseInt(m)}</button>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                sortedKeys.forEach(key => {
+                    const items = groups[key];
+                    const [brand, type] = key.split('|');
+
+                    html += `
+                        <div class="branch-group-section">
+                            <div class="branch-group-header">
+                                <span>${brand}</span>
+                                <span style="font-weight:400;color:#5f7f9f;">/ ${type}</span>
+                                <span class="group-count">（${items.length} 辆车）</span>
+                            </div>
+                            <div class="comparison-table-wrap">
+                                <table class="comparison-table">
+                                    <thead>
+                                        <tr>
+                                            <th>车牌</th>
+                                            <th>分厂</th>
+                                            ${activeMetricConfigs.map(c => `<th>${c.label}</th>`).join('')}
+                                            <th style="text-align:center;width:40px;"><i class="fas fa-chevron-down" style="color:#b0cce6;"></i></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${items.map((item, idx) => {
+                                            const rowId = key + '|' + item.plate;
+                                            const isExpanded = expandedRows.has(rowId);
+
+                                            const plantColor = item.plant === 'Selangau' ? '#00BCD4' :
+                                                item.plant === 'Stabau' ? '#E53935' :
+                                                item.plant === 'SG Merah' ? '#1A73E8' : '#8ba3bb';
+
+                                            const monthData = {};
+                                            (item.months || []).forEach(m => {
+                                                if (isEmptyMonth(m)) return;
+                                                const display = formatMonthDisplay(m.month);
+                                                if (display.indexOf('TOTAL') === -1 && display.indexOf('AVERAGE') === -1 && isMonthVisible(display)) {
+                                                    monthData[display] = m;
+                                                }
+                                            });
+                                            const sortedMonths = Object.keys(monthData).sort();
+
+                                            let detailHtml = '';
+                                            if (isExpanded && sortedMonths.length) {
+                                                const detailMetrics = [
+                                                    { label: 'L/m³', field: 'literPerM3' },
+                                                    { label: 'RM/m³', field: 'costPerM3' },
+                                                    { label: 'L/趟', field: 'literPerTrip' },
+                                                    { label: 'RM/趟', field: 'costPerTrip' },
+                                                    { label: 'L/km', field: 'literPerKm' },
+                                                    { label: 'RM/km', field: 'costPerKm' },
+                                                    { label: '总 m³', field: 'totalM3' },
+                                                    { label: '总 趟', field: 'totalTrip' },
+                                                    { label: '总油耗 (L)', field: 'totalLiter' },
+                                                    { label: '总花费 (RM)', field: 'totalCost' }
+                                                ];
+
+                                                detailHtml = `
+                                                    <tr class="detail-row">
+                                                        <td colspan="${activeMetricConfigs.length + 3}" style="padding:0.8rem 1rem;">
+                                                            <div style="font-size:0.75rem;font-weight:600;color:#1a4670;margin-bottom:0.5rem;">
+                                                                <i class="fas fa-calendar-alt"></i> 月度明细（${yearDisplay} ${monthDisplay}）
+                                                            </div>
+                                                            <table class="detail-table">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>指标</th>
+                                                                        ${sortedMonths.map(m => `<th>${m}</th>`).join('')}
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    ${detailMetrics.map(dm => {
+                                                                        const values = sortedMonths.map(m => {
+                                                                            const val = safeNumber(monthData[m][dm.field]);
+                                                                            return val !== null ? formatNumber(val) : '—';
+                                                                        });
+                                                                        return `
+                                                                            <tr>
+                                                                                <td class="detail-label">${dm.label}</td>
+                                                                                ${values.map(v => `<td>${v}</td>`).join('')}
+                                                                            </tr>
+                                                                        `;
+                                                                    }).join('')}
+                                                                </tbody>
+                                                            </table>
+                                                        </td>
+                                                    </tr>
+                                                `;
+                                            } else if (isExpanded && !sortedMonths.length) {
+                                                detailHtml = `
+                                                    <tr class="detail-row">
+                                                        <td colspan="${activeMetricConfigs.length + 3}" style="padding:1rem;text-align:center;color:#8ba3bb;">
+                                                            <i class="far fa-calendar-times"></i> 该车辆暂无匹配的月度明细数据
+                                                        </td>
+                                                    </tr>
+                                                `;
+                                            }
+
+                                            return `
+                                                <tr class="clickable-row" data-rowid="${rowId}">
+                                                    <td class="col-plate" style="color:${plantColor};">${item.plate}</td>
+                                                    <td>${item.plant}</td>
+                                                    ${activeMetricConfigs.map(c => {
+                                                        const val = item[c.field];
+                                                        const display = val !== undefined && val !== null && !isNaN(val) ? c.format(val) : '—';
+                                                        return `<td class="col-metric">${display}</td>`;
+                                                    }).join('')}
+                                                    <td style="text-align:center;">
+                                                        <i class="fas ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'}" style="color:#8ba3bb;font-size:0.7rem;"></i>
+                                                    </td>
+                                                </tr>
+                                                ${detailHtml}
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                comparisonContainer.innerHTML = html;
+
+                document.querySelectorAll('.branch-metric-toggle').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const metric = this.dataset.metric;
+                        if (activeMetrics.has(metric)) {
+                            if (activeMetrics.size === 1) return;
+                            activeMetrics.delete(metric);
+                            this.classList.remove('active');
+                        } else {
+                            activeMetrics.add(metric);
+                            this.classList.add('active');
+                        }
+                        renderBranchView(vehicles);
+                    });
+                });
+
+                const sortSelect = document.getElementById('branchSortSelect');
+                if (sortSelect) {
+                    sortSelect.addEventListener('change', function() {
+                        branchSortBy = this.value;
+                        renderBranchView(vehicles);
+                    });
+                }
+
+                document.querySelectorAll('#branchMonthGroup .month-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const month = this.dataset.month;
+                        if (month === 'all') {
+                            branchMonths = new Set(['all']);
+                            document.querySelectorAll('#branchMonthGroup .month-btn').forEach(b => b.classList
+                                .remove('active'));
+                            this.classList.add('active');
+                        } else {
+                            if (branchMonths.has('all')) {
+                                branchMonths.delete('all');
+                                document.querySelector('#branchMonthGroup .month-btn[data-month="all"]')
+                                    ?.classList.remove('active');
+                            }
+                            if (branchMonths.has(month)) {
+                                branchMonths.delete(month);
+                                this.classList.remove('active');
+                            } else {
+                                branchMonths.add(month);
+                                this.classList.add('active');
+                            }
+                            if (branchMonths.size === 0) {
+                                branchMonths = new Set(['all']);
+                                document.querySelector('#branchMonthGroup .month-btn[data-month="all"]')
+                                    ?.classList.add('active');
+                            }
+                        }
+                        renderBranchView(vehicles);
+                    });
+                });
+
+                document.querySelectorAll('.clickable-row').forEach(row => {
+                    row.addEventListener('click', function() {
+                        const rowId = this.dataset.rowid;
+                        if (expandedRows.has(rowId)) {
+                            expandedRows.delete(rowId);
+                        } else {
+                            expandedRows.add(rowId);
+                        }
+                        renderBranchView(vehicles);
+                    });
+                });
+            }
+
+            // ---------- 渲染单车辆详情 ----------
+            function renderSingleVehicleFull(vehicle) {
+                const s = getVehicleSummaryAll(vehicle);
+
+                const metricConfig = {
+                    totalLiter: { label: '总油耗 (L)', value: formatNumberCompact(s.totalLiter) + ' L' },
+                    totalCost: { label: '总花费 (RM)', value: 'RM ' + formatNumberCompact(s.totalCost) },
+                    totalM3: { label: '总 m³', value: formatNumberCompact(s.totalM3) + ' m³' },
+                    totalTrip: { label: '总 趟', value: formatNumberCompact(s.totalTrip) + ' 趟' },
+                    literPerM3: { label: 'L/m³', value: s.literPerM3.toFixed(2) },
+                    costPerM3: { label: 'RM/m³', value: 'RM ' + s.costPerM3.toFixed(2) },
+                    literPerTrip: { label: 'L/趟', value: s.literPerTrip.toFixed(2) },
+                    costPerTrip: { label: 'RM/趟', value: 'RM ' + s.costPerTrip.toFixed(2) },
+                    literPerKm: { label: 'L/km', value: s.literPerKm.toFixed(3) },
+                    costPerKm: { label: 'RM/km', value: 'RM ' + s.costPerKm.toFixed(3) }
+                };
+
+                const plantColor = s.plant === 'Selangau' ? '#00BCD4' :
+                    s.plant === 'Stabau' ? '#E53935' :
+                    s.plant === 'SG Merah' ? '#1A73E8' : '#8ba3bb';
+
+                const allVisibleMonths = (s.months || [])
+                    .filter(m => {
+                        if (isEmptyMonth(m)) return false;
+                        const display = formatMonthDisplay(m.month);
+                        if (display.indexOf('TOTAL') !== -1 || display.indexOf('AVERAGE') !== -1) return false;
+                        if (!isMonthVisible(display)) return false;
+                        if (branchYear !== 'all' && !display.startsWith(branchYear + '-')) return false;
+                        return true;
+                    })
+                    .sort((a, b) => {
+                        const da = formatMonthDisplay(a.month);
+                        const db = formatMonthDisplay(b.month);
+                        return da.localeCompare(db);
+                    });
+
+                const filteredMonths = singleVehicleMonthFilter === 'all' ?
+                    allVisibleMonths :
+                    allVisibleMonths.filter(m => {
+                        const display = formatMonthDisplay(m.month);
+                        const parsed = parseYearMonth(display);
+                        return parsed && parsed.month === singleVehicleMonthFilter;
+                    });
+
+                const sortedMonths = filteredMonths.map(m => formatMonthDisplay(m.month));
+
+                let monthFilterHtml = `
+                    <div class="single-vehicle-month-filter">
+                        <label><i class="far fa-calendar-check"></i> 月份</label>
+                        <button class="month-btn ${singleVehicleMonthFilter === 'all' ? 'active' : ''}" data-month="all">全部</button>
+                `;
+                ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].forEach(m => {
+                    const isActive = singleVehicleMonthFilter === m;
+                    monthFilterHtml +=
+                        `<button class="month-btn ${isActive ? 'active' : ''}" data-month="${m}">${parseInt(m)}</button>`;
+                });
+                monthFilterHtml += `</div>`;
+
+                let html = `
+                    <div class="single-vehicle-detail" id="singleVehicleDetail">
+                        <div class="vehicle-title">
+                            <span class="plate" style="color:${plantColor};">${s.plate}</span>
+                            <span class="meta">${s.plant} · ${s.brand} · ${s.type}</span>
+                            <span class="meta" style="background:#eef4fa;padding:0.1rem 0.8rem;border-radius:30px;font-size:0.8rem;">
+                                ${s.monthCount} 个月份
+                            </span>
+                        </div>
+                        <div class="summary-grid">
+                            ${Object.entries(metricConfig).map(([key, cfg]) => `
+                                <div class="summary-item">
+                                    <span class="label">${cfg.label}</span>
+                                    <span class="value">${cfg.value}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="detail-section-title"><i class="fas fa-calendar-alt"></i> 月度明细</div>
+                        ${monthFilterHtml}
+                        <div class="comparison-table-wrap">
+                            ${filteredMonths.length ? `
+                            <table class="comparison-table">
+                                <thead>
+                                    <tr>
+                                        <th>指标</th>
+                                        ${sortedMonths.map(m => `<th>${m}</th>`).join('')}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${[
+                                        { label: 'L/m³', field: 'literPerM3' },
+                                        { label: 'RM/m³', field: 'costPerM3' },
+                                        { label: 'L/趟', field: 'literPerTrip' },
+                                        { label: 'RM/趟', field: 'costPerTrip' },
+                                        { label: 'L/km', field: 'literPerKm' },
+                                        { label: 'RM/km', field: 'costPerKm' },
+                                        { label: '总 m³', field: 'totalM3' },
+                                        { label: '总 趟', field: 'totalTrip' },
+                                        { label: '总油耗 (L)', field: 'totalLiter' },
+                                        { label: '总花费 (RM)', field: 'totalCost' }
+                                    ].map(dm => {
+                                        const values = filteredMonths.map(m => {
+                                            const val = safeNumber(m[dm.field]);
+                                            return val !== null ? formatNumber(val) : '—';
+                                        });
+                                        return `
+                                            <tr>
+                                                <td class="detail-label">${dm.label}</td>
+                                                ${values.map(v => `<td class="col-metric">${v}</td>`).join('')}
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                            ` : `
+                            <div style="padding:1rem;text-align:center;color:#8ba3bb;">
+                                <i class="far fa-calendar-times"></i> 该月份暂无数据
+                            </div>
+                            `}
+                        </div>
+                    </div>
+                `;
+
+                comparisonContainer.innerHTML = html;
+
+                document.querySelectorAll('#singleVehicleDetail .single-vehicle-month-filter .month-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const month = this.dataset.month;
+                        document.querySelectorAll('#singleVehicleDetail .single-vehicle-month-filter .month-btn')
+                            .forEach(b => b.classList.remove('active'));
+                        this.classList.add('active');
+                        singleVehicleMonthFilter = month;
+                        renderSingleVehicleFull(vehicle);
+                    });
+                });
+            }
+
+            // ---------- 导出 Excel ----------
+            function exportExcel() {
+                const vehicles = getFilteredVehicles();
+
+                if (!vehicles.length) {
+                    alert('没有数据可导出');
+                    return;
+                }
+
+                const allMonths = new Set();
+                vehicles.forEach(v => {
+                    (v.months || []).forEach(m => {
+                        if (isEmptyMonth(m)) return;
+                        const display = formatMonthDisplay(m.month);
+                        if (display.indexOf('TOTAL') !== -1 || display.indexOf('AVERAGE') !== -1) return;
+                        if (isMonthVisible(display)) {
+                            allMonths.add(display);
+                        }
+                    });
+                });
+                const sortedMonths = Array.from(allMonths).sort();
+
+                const metricKeys = Array.from(activeMetrics);
+                const metricLabels = {
+                    totalLiter: '总油耗(L)',
+                    totalCost: '总花费(RM)',
+                    totalM3: '总m³',
+                    totalTrip: '总趟',
+                    literPerM3: 'L/m³',
+                    costPerM3: 'RM/m³',
+                    literPerTrip: 'L/趟',
+                    costPerTrip: 'RM/趟',
+                    literPerKm: 'L/km',
+                    costPerKm: 'RM/km'
+                };
+
+                const rows = [];
+                const header = ['车牌', '分厂', '品牌', '车型'];
+                metricKeys.forEach(key => {
+                    header.push(metricLabels[key] || key);
+                });
+                rows.push(header);
+
+                vehicles.forEach(v => {
+                    const metricValues = {};
+                    metricKeys.forEach(key => {
+                        const s = getVehicleSummaryByFilter(v, branchYear, branchMonths);
+                        metricValues[key] = s[key] !== undefined ? s[key] : 0;
+                    });
+
+                    const row = [
+                        v.vehicleNumber || '',
+                        v.plant || '',
+                        v.brand || '',
+                        v.type || ''
+                    ];
+
+                    metricKeys.forEach(key => {
+                        const val = metricValues[key];
+                        if (typeof val === 'number') {
+                            row.push(Math.round(val * 100) / 100);
+                        } else {
+                            row.push(val || 0);
+                        }
+                    });
+
+                    rows.push(row);
+                });
+
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(rows);
+                XLSX.utils.book_append_sheet(wb, ws, '油耗数据');
+
+                const fileName = '油耗数据_' + now.toISOString().slice(0, 10) + '.xlsx';
+                XLSX.writeFile(wb, fileName);
+
+                statusBadge.innerHTML = `<i class="fas fa-circle" style="color:#2e7d32;"></i> 导出成功 (${vehicles.length} 辆车)`;
+                setTimeout(() => {
+                    statusBadge.innerHTML = `<i class="fas fa-circle" style="color:#2e7d32;"></i> 已连接`;
+                }, 3000);
+            }
+
+            // ---------- 🔥 更新统计卡片 ----------
+            function updateStats(vehicles) {
+                let stats = calcStats(vehicles);
+
+                totalVehiclesEl.textContent = stats.vehicleCount;
+
+                const plants = new Set();
+                vehicles.forEach(v => {
+                    if (v.plant) plants.add(v.plant.trim());
+                });
+                totalMonthsEl.textContent = plants.size;
+
+                const types = new Set();
+                vehicles.forEach(v => {
+                    const combo = getTypeCombination(v);
+                    if (combo) types.add(combo);
+                });
+                totalTypesEl.textContent = types.size;
+
+                // 总油耗
+                totalFuelEl.textContent = formatNumber(stats.totalFuel);
+                // 总花费
+                totalCostEl.textContent = formatNumber(stats.totalCost);
+                // 总 m³
+                totalM3El.textContent = formatNumber(stats.totalM3);
+                // 总 趟（显示整数）
+                totalTripEl.textContent = formatNumberInt(stats.totalTrip);
+
+                // 构建筛选条件描述（所有卡片共用）
+                const filters = [];
+                if (currentPlantFilter !== 'all') filters.push(currentPlantFilter);
+                if (currentTypeFilter !== 'all') filters.push(currentTypeFilter);
+                if (currentPlateFilter !== 'all') filters.push(currentPlateFilter);
+                if (branchYear !== 'all') filters.push(branchYear);
+
+                if (!branchMonths.has('all') && branchMonths.size > 0) {
+                    const sortedMonths = Array.from(branchMonths).sort();
+                    filters.push(sortedMonths.join('、') + '月');
+                }
+
+                const filterText = filters.length === 0 ? 'All of them' : filters.join(' · ');
+                totalFuelFilterLabel.textContent = filterText;
+                totalCostFilterLabel.textContent = filterText;
+                totalM3FilterLabel.textContent = filterText;
+                totalTripFilterLabel.textContent = filterText;
+            }
+
+            // ---------- 获取筛选后的车辆 ----------
+            function getFilteredVehicles() {
+                let filtered = allData;
+
+                if (currentPlantFilter && currentPlantFilter !== 'all') {
+                    filtered = filtered.filter(v => (v.plant || '').trim() === currentPlantFilter);
+                }
+
+                if (currentTypeFilter && currentTypeFilter !== 'all') {
+                    filtered = filtered.filter(v => {
+                        const combo = getTypeCombination(v);
+                        return combo === currentTypeFilter;
+                    });
+                }
+
+                if (currentPlateFilter && currentPlateFilter !== 'all') {
+                    filtered = filtered.filter(v => (v.vehicleNumber || '').trim() === currentPlateFilter);
+                }
+
+                filtered = filtered.map(v => {
+                    let filteredMonths = (v.months || []).filter(m => {
+                        if (isEmptyMonth(m)) return false;
+                        let display = formatMonthDisplay(m.month);
+                        if (display.indexOf('TOTAL') !== -1 || display.indexOf('AVERAGE') !== -1) return true;
+                        if (!isMonthVisible(display)) return false;
+                        if (branchYear !== 'all' && !display.startsWith(branchYear + '-')) return false;
+                        if (!allVehiclesMonthFilter.has('all')) {
+                            const parsed = parseYearMonth(display);
+                            if (!parsed) return false;
+                            if (!allVehiclesMonthFilter.has(parsed.month)) return false;
+                        }
+                        return true;
+                    });
+                    return { ...v, months: filteredMonths };
+                }).filter(v => v.months.length > 0);
+
+                return filtered;
+            }
+
+            // ---------- 🔥 渲染全部车辆数据表格 ----------
+            function renderAllVehiclesTable(vehicles) {
+                if (!vehicles || !vehicles.length) {
+                    allVehiclesTableBody.innerHTML =
+                        `<tr><td colspan="14" style="text-align:center;padding:2rem;color:#8ba3bb;">暂无数据</td></tr>`;
+                    allVehiclesCount.textContent = '共 0 辆车';
+                    return;
+                }
+
+                const summaryData = vehicles.map(v => {
+                    const s = getVehicleSummaryByFilter(v, branchYear, allVehiclesMonthFilter);
+                    return {
+                        plate: v.vehicleNumber || '未知',
+                        plant: v.plant || '—',
+                        brand: v.brand || '—',
+                        type: v.type || '—',
+                        totalLiter: s.totalLiter,
+                        totalCost: s.totalCost,
+                        totalM3: s.totalM3,
+                        totalTrip: s.totalTrip,
+                        literPerM3: s.literPerM3,
+                        costPerM3: s.costPerM3,
+                        literPerTrip: s.literPerTrip,
+                        costPerTrip: s.costPerTrip,
+                        literPerKm: s.literPerKm,
+                        costPerKm: s.costPerKm,
+                        monthCount: s.monthCount
+                    };
+                }).filter(item => item.monthCount > 0);
+
+                if (!summaryData.length) {
+                    allVehiclesTableBody.innerHTML =
+                        `<tr><td colspan="14" style="text-align:center;padding:2rem;color:#8ba3bb;">暂无匹配的数据</td></tr>`;
+                    allVehiclesCount.textContent = '共 0 辆车';
+                    return;
+                }
+
+                allVehiclesCount.textContent = `共 ${summaryData.length} 辆车`;
+
+                const sortKey = allVehiclesSortKey;
+                summaryData.sort((a, b) => {
+                    const va = a[sortKey] || 0;
+                    const vb = b[sortKey] || 0;
+                    if (typeof va === 'string') return va.localeCompare(vb);
+                    return vb - va;
+                });
+
+                const activeMetricKeys = Array.from(allVehiclesActiveMetrics);
+
+                const metricColumns = [
+                    { key: 'totalLiter', label: '总油耗(L)' },
+                    { key: 'totalCost', label: '总花费(RM)' },
+                    { key: 'totalM3', label: '总m³' },
+                    { key: 'totalTrip', label: '总趟' },
+                    { key: 'literPerM3', label: 'L/m³' },
+                    { key: 'costPerM3', label: 'RM/m³' },
+                    { key: 'literPerTrip', label: 'L/趟' },
+                    { key: 'costPerTrip', label: 'RM/趟' },
+                    { key: 'literPerKm', label: 'L/km' },
+                    { key: 'costPerKm', label: 'RM/km' }
+                ];
+
+                let html = '';
+                summaryData.forEach(item => {
+                    const plantColor = item.plant === 'Selangau' ? '#00BCD4' :
+                        item.plant === 'Stabau' ? '#E53935' :
+                        item.plant === 'SG Merah' ? '#1A73E8' : '#8ba3bb';
+
+                    html += `<tr>`;
+                    html += `<td class="col-plate" style="color:${plantColor};">${item.plate}</td>`;
+                    html += `<td>${item.plant}</td>`;
+                    html += `<td>${item.brand}</td>`;
+                    html += `<td>${item.type}</td>`;
+
+                    metricColumns.forEach(col => {
+                        const isActive = activeMetricKeys.includes(col.key);
+                        const val = item[col.key];
+                        let display = '—';
+                        if (val !== undefined && val !== null && !isNaN(val)) {
+                            if (col.key === 'totalTrip') {
+                                display = formatNumberInt(val);
+                            } else {
+                                display = formatNumberCompact(val);
+                            }
+                        }
+                        html +=
+                            `<td class="col-metric ${isActive ? '' : 'col-metric-hidden'}">${display}</td>`;
+                    });
+
+                    html += `</tr>`;
+                });
+
+                allVehiclesTableBody.innerHTML = html;
+            }
+
+            // ---------- 更新全部车辆表格 ----------
+            function updateAllVehicles() {
+                const vehicles = getFilteredVehicles();
+                renderAllVehiclesTable(vehicles);
+            }
+
+            // ---------- 主渲染 ----------
+            function renderAll() {
+                const vehicles = getFilteredVehicles();
+                updateStats(vehicles);
+
+                updateAnalytics(vehicles);
+                updateAllVehicles();
+
+                const isBranchFilter = (currentPlantFilter !== 'all');
+                const isPlateFilter = (currentPlateFilter !== 'all');
+                const isTypeFilter = (currentTypeFilter !== 'all');
+
+                if (isBranchFilter || isTypeFilter) {
+                    comparisonView.classList.add('visible');
+                    renderBranchView(vehicles);
+                    const yearDisplay = branchYear === 'all' ? '全部年份' : branchYear + ' 年';
+                    const monthDisplay = allVehiclesMonthFilter.has('all') ? '全部月份' :
+                        Array.from(allVehiclesMonthFilter).sort().join('、') + ' 月';
+                    let filterLabel = '';
+                    if (isBranchFilter) filterLabel = currentPlantFilter;
+                    if (isTypeFilter) filterLabel = currentTypeFilter;
+                    if (isBranchFilter && isTypeFilter) filterLabel = currentPlantFilter + ' · ' + currentTypeFilter;
+                    activeFilterBadge.innerHTML =
+                        `<strong>${filterLabel}</strong> · ${vehicles.length} 辆车 · ${yearDisplay} · ${monthDisplay}`;
+                } else if (isPlateFilter && vehicles.length === 1) {
+                    comparisonView.classList.add('visible');
+                    renderSingleVehicleFull(vehicles[0]);
+                    activeFilterBadge.innerHTML = `<strong>${currentPlateFilter}</strong> · 单车辆`;
+                } else {
+                    comparisonView.classList.remove('visible');
+                }
+
+                let allMonths = [];
+                allData.forEach(v => {
+                    (v.months || []).forEach(m => {
+                        if (!isEmptyMonth(m) && m.month) allMonths.push(formatMonthDisplay(m.month));
+                    });
+                });
+                let years = new Set();
+                allMonths.forEach(d => { let p = parseYearMonth(d); if (p) years.add(p.year); });
+                let currentYearVal = yearFilter.value;
+                yearFilter.innerHTML = '<option value="all">全部</option>';
+                Array.from(years).sort().forEach(y => {
+                    let opt = document.createElement('option');
+                    opt.value = y;
+                    opt.textContent = y + '年';
+                    yearFilter.appendChild(opt);
+                });
+                if (currentYearVal && years.has(currentYearVal)) yearFilter.value = currentYearVal;
+                else yearFilter.value = 'all';
+            }
+
+            // ---------- 车牌模态框 ----------
+            function openPlateModal() {
+                const vehicles = getFilteredVehicles();
+
+                const years = new Set();
+                vehicles.forEach(v => {
+                    (v.months || []).forEach(m => {
+                        if (isEmptyMonth(m)) return;
+                        const display = formatMonthDisplay(m.month);
+                        if (display.indexOf('TOTAL') !== -1 || display.indexOf('AVERAGE') !== -1) {
+                            const parsed = parseYearMonth(display);
+                            if (parsed) years.add(parsed.year);
+                        }
+                    });
+                });
+                const sortedYears = Array.from(years).sort();
+                const currentPlateYear = plateYearFilter.value;
+                plateYearFilter.innerHTML = '<option value="all">全部</option>';
+                sortedYears.forEach(y => {
+                    const opt = document.createElement('option');
+                    opt.value = y;
+                    opt.textContent = y;
+                    plateYearFilter.appendChild(opt);
+                });
+                if (currentPlateYear && sortedYears.includes(currentPlateYear)) {
+                    plateYearFilter.value = currentPlateYear;
+                } else {
+                    plateYearFilter.value = 'all';
+                }
+
+                buildPlateGrid(vehicles);
+
+                plateModal.classList.add('active');
+            }
+
+            function buildPlateGrid(vehicles) {
+                const plates = vehicles.map(v => v.vehicleNumber).filter(Boolean);
+                const uniquePlates = [...new Set(plates)].sort();
+
+                if (!uniquePlates.length) {
+                    plateGrid.innerHTML = `<div style="padding:1rem;text-align:center;color:#8ba3bb;">暂无车辆数据</div>`;
+                    return;
+                }
+
+                const plateDataMap = {};
+                uniquePlates.forEach(p => { plateDataMap[p] = false; });
+
+                const year = plateYearFilter.value;
+
+                vehicles.forEach(v => {
+                    const plate = v.vehicleNumber;
+                    if (!plate) return;
+                    const hasData = (v.months || []).some(m => {
+                        if (isEmptyMonth(m)) return false;
+                        const display = formatMonthDisplay(m.month);
+                        if (display.indexOf('TOTAL') !== -1 || display.indexOf('AVERAGE') !== -1) return false;
+                        if (!isMonthVisible(display)) return false;
+                        if (year !== 'all' && !display.startsWith(year + '-')) return false;
+                        return true;
+                    });
+                    if (hasData) {
+                        plateDataMap[plate] = true;
+                    }
+                });
+
+                const hasDataCount = Object.values(plateDataMap).filter(v => v === true).length;
+
+                plateModalSubtitle.textContent = `共 ${uniquePlates.length} 辆车 · ${hasDataCount} 辆有数据`;
+
+                plateGrid.innerHTML = '';
+                uniquePlates.forEach(p => {
+                    const btn = document.createElement('button');
+                    btn.className = 'modal-btn';
+                    btn.dataset.plate = p;
+
+                    const hasData = plateDataMap[p];
+                    if (hasData) {
+                        btn.classList.add('has-data');
+                        btn.innerHTML = `${p} <span class="data-status">●</span>`;
+                    } else {
+                        btn.classList.add('no-data');
+                        btn.innerHTML = `${p} <span class="data-status">○</span>`;
+                    }
+
+                    if (currentPlateFilter === p) {
+                        btn.classList.add('active');
+                    }
+
+                    btn.addEventListener('click', function() {
+                        const plate = this.dataset.plate;
+                        currentPlateFilter = plate;
+                        currentPlantFilter = 'all';
+                        currentTypeFilter = 'all';
+                        expandedRows.clear();
+                        activeMetrics = new Set(['totalLiter', 'totalCost', 'totalM3', 'totalTrip']);
+                        singleVehicleMonthFilter = 'all';
+                        closePlateModal();
+                        renderAll();
+                    });
+
+                    plateGrid.appendChild(btn);
+                });
+            }
+
+            function closePlateModal() {
+                plateModal.classList.remove('active');
+            }
+
+            // ---------- 其他模态框 ----------
+            function openPlantModal() {
+                plantModal.classList.add('active');
+            }
+
+            function closePlantModal() {
+                plantModal.classList.remove('active');
+            }
+
+            function openTypeModal() {
+                const vehicles = getFilteredVehicles();
+                const types = new Set();
+                vehicles.forEach(v => {
+                    const combo = getTypeCombination(v);
+                    if (combo) types.add(combo);
+                });
+                const uniqueTypes = Array.from(types).sort();
+
+                if (!uniqueTypes.length) {
+                    typeGrid.innerHTML = `<div style="padding:1rem;text-align:center;color:#8ba3bb;">暂无车型数据</div>`;
+                } else {
+                    typeGrid.innerHTML = '';
+                    uniqueTypes.forEach(t => {
+                        const btn = document.createElement('button');
+                        btn.className = 'modal-btn';
+                        btn.dataset.type = t;
+                        btn.textContent = t;
+                        if (currentTypeFilter === t) {
+                            btn.classList.add('active');
+                        }
+                        typeGrid.appendChild(btn);
+                    });
+                }
+
+                typeModalSubtitle.textContent = `共 ${uniqueTypes.length} 种车型，点击查看`;
+                typeModal.classList.add('active');
+            }
+
+            function closeTypeModal() {
+                typeModal.classList.remove('active');
+            }
+
+            // ---------- 重置全部 ----------
+            function resetAll() {
+                currentPlantFilter = 'all';
+                currentPlateFilter = 'all';
+                currentTypeFilter = 'all';
+                expandedRows.clear();
+                activeMetrics = new Set(['totalLiter', 'totalCost', 'totalM3', 'totalTrip']);
+                trendActiveMetrics = new Set(['totalLiter']);
+                branchYear = 'all';
+                branchMonths = new Set(['all']);
+                branchSortBy = 'plate';
+                plateFilterYear = 'all';
+                singleVehicleMonthFilter = 'all';
+                allVehiclesMonthFilter = new Set(['all']);
+                allVehiclesSortKey = 'totalLiter';
+                allVehiclesActiveMetrics = new Set(['totalLiter', 'totalCost', 'totalM3', 'totalTrip']);
+                renderAll();
+            }
+
+            // ---------- 加载数据 ----------
+            async function loadData() {
+                comparisonContainer.innerHTML =
+                    `<div class="loading-placeholder"><i class="fas fa-spinner fa-pulse"></i><p>正在读取数据…</p></div>`;
+                rankListContainer.innerHTML = `<div class="rank-empty"><i class="fas fa-spinner fa-pulse"></i> 加载中...</div>`;
+                statusBadge.innerHTML = `<i class="fas fa-circle" style="color:#f5a623;"></i> 加载中`;
+
+                try {
+                    let resp = await fetch(API_URL, { headers: { 'Accept': 'application/json' } });
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                    let data = await resp.json();
+                    if (data && data.error) throw new Error(data.error.message || '脚本返回错误');
+                    let list = Array.isArray(data) ? data : (data.data || []);
+                    allData = list;
+
+                    let years = new Set();
+                    allData.forEach(v => {
+                        (v.months || []).forEach(m => {
+                            if (!isEmptyMonth(m) && m.month) {
+                                const display = formatMonthDisplay(m.month);
+                                if (display.indexOf('TOTAL') === -1 && display.indexOf('AVERAGE') ===
+                                    -1) {
+                                    const parsed = parseYearMonth(display);
+                                    if (parsed) years.add(parsed.year);
+                                }
+                            }
+                        });
+                    });
+                    const sortedYears = Array.from(years).sort();
+                    if (sortedYears.length > 0) {
+                        branchYear = sortedYears[sortedYears.length - 1];
+                    }
+
+                    resetAll();
+                    statusBadge.innerHTML = `<i class="fas fa-circle" style="color:#2e7d32;"></i> 已更新`;
+                } catch (err) {
+                    console.error(err);
+                    comparisonContainer.innerHTML =
+                        `<div class="error-message"><i class="fas fa-exclamation-triangle"></i> <strong>加载失败：</strong> ${err.message}</div>`;
+                    rankListContainer.innerHTML =
+                        `<div class="rank-empty"><i class="fas fa-exclamation-triangle"></i> 加载失败</div>`;
+                    statusBadge.innerHTML = `<i class="fas fa-circle" style="color:#b33;"></i> 连接错误`;
+                }
+            }
+
+            // ---------- 事件绑定 ----------
+            document.getElementById('yearFilter').addEventListener('change', function() {
+                branchYear = this.value;
+                renderAll();
+            });
+
+            refreshBtn.addEventListener('click', loadData);
+            exportBtn.addEventListener('click', exportExcel);
+
+            vehicleCountCard.addEventListener('click', openPlateModal);
+            coverMonthsCard.addEventListener('click', openPlantModal);
+            typeCard.addEventListener('click', openTypeModal);
+
+            resetBtn.addEventListener('click', resetAll);
+
+            // 全部车辆表格事件
+            document.querySelectorAll('#allVehiclesMonthGroup .month-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const month = this.dataset.month;
+                    if (month === 'all') {
+                        allVehiclesMonthFilter = new Set(['all']);
+                        document.querySelectorAll('#allVehiclesMonthGroup .month-btn').forEach(b => b.classList
+                            .remove('active'));
+                        this.classList.add('active');
+                    } else {
+                        if (allVehiclesMonthFilter.has('all')) {
+                            allVehiclesMonthFilter.delete('all');
+                            document.querySelector('#allVehiclesMonthGroup .month-btn[data-month="all"]')
+                                ?.classList.remove('active');
+                        }
+                        if (allVehiclesMonthFilter.has(month)) {
+                            allVehiclesMonthFilter.delete(month);
+                            this.classList.remove('active');
+                        } else {
+                            allVehiclesMonthFilter.add(month);
+                            this.classList.add('active');
+                        }
+                        if (allVehiclesMonthFilter.size === 0) {
+                            allVehiclesMonthFilter = new Set(['all']);
+                            document.querySelector('#allVehiclesMonthGroup .month-btn[data-month="all"]')
+                                ?.classList.add('active');
+                        }
+                    }
+                    renderAll();
+                });
+            });
+
+            allVehiclesSort.addEventListener('change', function() {
+                allVehiclesSortKey = this.value;
+                renderAll();
+            });
+
+            document.querySelectorAll('.all-vehicles-metric-toggle').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const metric = this.dataset.metric;
+                    if (allVehiclesActiveMetrics.has(metric)) {
+                        if (allVehiclesActiveMetrics.size === 1) return;
+                        allVehiclesActiveMetrics.delete(metric);
+                        this.classList.remove('active');
+                    } else {
+                        allVehiclesActiveMetrics.add(metric);
+                        this.classList.add('active');
+                    }
+                    renderAll();
+                });
+            });
+
+            document.querySelectorAll('#allVehiclesTableHead th').forEach(th => {
+                th.addEventListener('click', function() {
+                    const sortKey = this.dataset.sort;
+                    if (sortKey) {
+                        allVehiclesSortKey = sortKey;
+                        allVehiclesSort.value = sortKey;
+                        renderAll();
+                    }
+                });
+            });
+
+            // 模态框事件
+            plateModalClose.addEventListener('click', closePlateModal);
+            plateModal.addEventListener('click', function(e) {
+                if (e.target === this) closePlateModal();
+            });
+
+            plateAllBtn.addEventListener('click', function() {
+                currentPlateFilter = 'all';
+                currentPlantFilter = 'all';
+                currentTypeFilter = 'all';
+                expandedRows.clear();
+                activeMetrics = new Set(['totalLiter', 'totalCost', 'totalM3', 'totalTrip']);
+                singleVehicleMonthFilter = 'all';
+                closePlateModal();
+                renderAll();
+            });
+
+            plateYearFilter.addEventListener('change', function() {
+                const vehicles = getFilteredVehicles();
+                buildPlateGrid(vehicles);
+            });
+
+            plantModalButtons.addEventListener('click', function(e) {
+                const btn = e.target.closest('.modal-btn');
+                if (!btn) return;
+                const plant = btn.dataset.plant;
+                currentPlantFilter = plant;
+                currentPlateFilter = 'all';
+                currentTypeFilter = 'all';
+                expandedRows.clear();
+                activeMetrics = new Set(['totalLiter', 'totalCost', 'totalM3', 'totalTrip']);
+                singleVehicleMonthFilter = 'all';
+                closePlantModal();
+                renderAll();
+            });
+
+            typeModalClose.addEventListener('click', closeTypeModal);
+            typeModal.addEventListener('click', function(e) {
+                if (e.target === this) closeTypeModal();
+            });
+
+            typeAllBtn.addEventListener('click', function() {
+                currentTypeFilter = 'all';
+                currentPlantFilter = 'all';
+                currentPlateFilter = 'all';
+                expandedRows.clear();
+                activeMetrics = new Set(['totalLiter', 'totalCost', 'totalM3', 'totalTrip']);
+                singleVehicleMonthFilter = 'all';
+                closeTypeModal();
+                renderAll();
+            });
+
+            typeGrid.addEventListener('click', function(e) {
+                const btn = e.target.closest('.modal-btn');
+                if (!btn) return;
+                const type = btn.dataset.type;
+                currentTypeFilter = type;
+                currentPlantFilter = 'all';
+                currentPlateFilter = 'all';
+                expandedRows.clear();
+                activeMetrics = new Set(['totalLiter', 'totalCost', 'totalM3', 'totalTrip']);
+                singleVehicleMonthFilter = 'all';
+                closeTypeModal();
+                renderAll();
+            });
+
+            plantModalClose.addEventListener('click', closePlantModal);
+            plantModal.addEventListener('click', function(e) {
+                if (e.target === this) closePlantModal();
+            });
+
+            document.getElementById('rankTabs').addEventListener('click', function(e) {
+                const tab = e.target.closest('.rank-tab');
+                if (!tab) return;
+                document.querySelectorAll('.rank-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentSort = tab.dataset.sort;
+                const vehicles = getFilteredVehicles();
+                renderRanking(vehicles, currentSort, branchYear, allVehiclesMonthFilter);
+            });
+
+            trendMetricToggles.addEventListener('click', function(e) {
+                const btn = e.target.closest('.trend-metric-toggle');
+                if (!btn) return;
+                const metric = btn.dataset.metric;
+                if (trendActiveMetrics.has(metric)) {
+                    if (trendActiveMetrics.size === 1) return;
+                    trendActiveMetrics.delete(metric);
+                    btn.classList.remove('active');
+                } else {
+                    trendActiveMetrics.add(metric);
+                    btn.classList.add('active');
+                }
+                const vehicles = getFilteredVehicles();
+                renderTrendChart(vehicles, branchYear, allVehiclesMonthFilter);
+            });
+
+            // ---------- 启动 ----------
+            loadData();
+
+            let resizeTimer;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    if (trendChartInstance) {
+                        trendChartInstance.resize();
+                    }
+                }, 300);
+            });
+        })();
+    </script>
+</body>
+</html>
