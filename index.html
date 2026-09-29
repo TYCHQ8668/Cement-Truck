@@ -1122,6 +1122,13 @@
         <div class="modal-box">
             <button class="modal-close" id="expensePlateModalClose"><i class="fas fa-times"></i></button>
             <div class="modal-title"><i class="fas fa-car"></i> 选择车辆（费用）</div>
+            <div class="plate-search-row">
+                <label><i class="fas fa-search"></i> 检索</label>
+                <div class="plate-search-input-wrap">
+                    <i class="fas fa-car"></i>
+                    <input id="expensePlateSearchInput" class="plate-search-input" type="search" placeholder="输入车牌，例如 QB3465" autocomplete="off">
+                </div>
+            </div>
             <div class="modal-subtitle" id="expensePlateModalSubtitle">点击切换选中 / 取消，可多选，点击「确定」应用</div>
             <div class="plate-grid" id="expensePlateGrid"></div>
             <div class="modal-footer-actions">
@@ -1200,6 +1207,13 @@
         <div class="modal-box">
             <button class="modal-close" id="analysisPlateModalClose"><i class="fas fa-times"></i></button>
             <div class="modal-title"><i class="fas fa-car"></i> 选择车辆（分析）</div>
+            <div class="plate-search-row">
+                <label><i class="fas fa-search"></i> 检索</label>
+                <div class="plate-search-input-wrap">
+                    <i class="fas fa-car"></i>
+                    <input id="analysisPlateSearchInput" class="plate-search-input" type="search" placeholder="输入车牌，例如 QS8610" autocomplete="off">
+                </div>
+            </div>
             <div class="modal-subtitle" id="analysisPlateModalSubtitle">点击切换选中 / 取消，可多选，点击「确定」应用</div>
             <div class="plate-grid" id="analysisPlateGrid"></div>
             <div class="modal-footer-actions">
@@ -1357,6 +1371,7 @@
             const expensePlateModalClose = document.getElementById('expensePlateModalClose');
             const expensePlateModalSubtitle = document.getElementById('expensePlateModalSubtitle');
             const expensePlateGrid = document.getElementById('expensePlateGrid');
+            const expensePlateSearchInput = document.getElementById('expensePlateSearchInput');
             const expensePlateSelectAllBtn = document.getElementById('expensePlateSelectAllBtn');
             const expensePlateDeselectAllBtn = document.getElementById('expensePlateDeselectAllBtn');
             const expensePlateConfirmBtn = document.getElementById('expensePlateConfirmBtn');
@@ -1406,6 +1421,7 @@
             const analysisPlateModalClose = document.getElementById('analysisPlateModalClose');
             const analysisPlateModalSubtitle = document.getElementById('analysisPlateModalSubtitle');
             const analysisPlateGrid = document.getElementById('analysisPlateGrid');
+            const analysisPlateSearchInput = document.getElementById('analysisPlateSearchInput');
             const analysisPlateSelectAllBtn = document.getElementById('analysisPlateSelectAllBtn');
             const analysisPlateDeselectAllBtn = document.getElementById('analysisPlateDeselectAllBtn');
             const analysisPlateConfirmBtn = document.getElementById('analysisPlateConfirmBtn');
@@ -2455,15 +2471,35 @@
             }
 
             function openExpensePlateModal() {
+                expenseTempPlateSelection = new Set(expensePlateFilter);
+                if (expensePlateSearchInput) expensePlateSearchInput.value = '';
+                buildExpensePlateGrid();
+                expensePlateModal.classList.add('active');
+            }
+
+            function buildExpensePlateGrid() {
                 const plates = allExpenseData.map(v => v.vehicleNumber).filter(Boolean);
                 const uniquePlates = [...new Set(plates)].sort();
-                expenseTempPlateSelection = new Set(expensePlateFilter);
-                if (!uniquePlates.length) { expensePlateGrid.innerHTML = `<div style="padding:1rem;text-align:center;color:#8ba3bb;">暂无车辆数据</div>`; expensePlateModal.classList.add('active'); return; }
+                if (!uniquePlates.length) { expensePlateGrid.innerHTML = `<div style="padding:1rem;text-align:center;color:#8ba3bb;">暂无车辆数据</div>`; return; }
                 const plateHasData = {};
                 allExpenseData.forEach(v => { const plate = v.vehicleNumber; if (!plate) return; const hasData = (v.expenseMonths || []).some(m => { if (isEmptyExpenseMonth(m)) return false; return isMonthVisible(formatMonthDisplay(m.month)); }); if (hasData) plateHasData[plate] = true; });
-                expensePlateModalSubtitle.textContent = `共 ${uniquePlates.length} 辆车 · 已选 ${expenseTempPlateSelection.size} 辆`;
+                const hasDataCount = Object.values(plateHasData).filter(v => v).length;
+                const searchTerm = expensePlateSearchInput ? expensePlateSearchInput.value.trim().toUpperCase() : '';
+                const visiblePlates = searchTerm
+                    ? uniquePlates.filter(p => String(p).toUpperCase().includes(searchTerm))
+                    : uniquePlates;
+
+                expensePlateModalSubtitle.textContent = searchTerm
+                    ? `共 ${uniquePlates.length} 辆车 · 找到 ${visiblePlates.length} 辆 · 已选 ${expenseTempPlateSelection.size} 辆`
+                    : `共 ${uniquePlates.length} 辆车 · 已选 ${expenseTempPlateSelection.size} 辆`;
+
                 expensePlateGrid.innerHTML = '';
-                uniquePlates.forEach(p => {
+                if (!visiblePlates.length) {
+                    expensePlateGrid.innerHTML = `<div style="grid-column:1/-1;padding:1.2rem;text-align:center;color:#8ba3bb;"><i class="fas fa-search"></i> 找不到符合条件的车牌</div>`;
+                    return;
+                }
+
+                visiblePlates.forEach(p => {
                     const btn = document.createElement('button');
                     btn.className = 'modal-btn'; btn.dataset.plate = p;
                     if (plateHasData[p]) { btn.classList.add('has-data'); btn.innerHTML = `${p} <span class="data-status">●</span>`; }
@@ -2473,11 +2509,13 @@
                         const plate = this.dataset.plate;
                         if (expenseTempPlateSelection.has(plate)) { expenseTempPlateSelection.delete(plate); this.classList.remove('active'); }
                         else { expenseTempPlateSelection.add(plate); this.classList.add('active'); }
-                        expensePlateModalSubtitle.textContent = `共 ${uniquePlates.length} 辆车 · 已选 ${expenseTempPlateSelection.size} 辆`;
+                        const currentSearch = expensePlateSearchInput ? expensePlateSearchInput.value.trim().toUpperCase() : '';
+                        expensePlateModalSubtitle.textContent = currentSearch
+                            ? `共 ${uniquePlates.length} 辆车 · 找到 ${visiblePlates.length} 辆 · 已选 ${expenseTempPlateSelection.size} 辆`
+                            : `共 ${uniquePlates.length} 辆车 · 已选 ${expenseTempPlateSelection.size} 辆`;
                     });
                     expensePlateGrid.appendChild(btn);
                 });
-                expensePlateModal.classList.add('active');
             }
 
             function openExpensePlantModal() {
@@ -3787,10 +3825,16 @@
             function openAnalysisYearModal() { analysisTempYearSelection = new Set(analysisYearSet); buildAnalysisYearGrid(); analysisYearModal.classList.add('active'); }
 
             function openAnalysisPlateModal() {
+                analysisTempPlateSelection = new Set(analysisPlateFilter);
+                if (analysisPlateSearchInput) analysisPlateSearchInput.value = '';
+                buildAnalysisPlateGrid();
+                analysisPlateModal.classList.add('active');
+            }
+
+            function buildAnalysisPlateGrid() {
                 const plates = allData.map(v => v.vehicleNumber).filter(Boolean);
                 const uniquePlates = [...new Set(plates)].sort();
-                analysisTempPlateSelection = new Set(analysisPlateFilter);
-                if (!uniquePlates.length) { analysisPlateGrid.innerHTML = `<div style="padding:1rem;text-align:center;color:#8ba3bb;">暂无车辆数据</div>`; analysisPlateModal.classList.add('active'); return; }
+                if (!uniquePlates.length) { analysisPlateGrid.innerHTML = `<div style="padding:1rem;text-align:center;color:#8ba3bb;">暂无车辆数据</div>`; return; }
                 const plateHasData = {};
                 allData.forEach(v => {
                     const plate = v.vehicleNumber;
@@ -3804,9 +3848,22 @@
                     if (hasData) plateHasData[plate] = true;
                 });
                 const hasDataCount = Object.values(plateHasData).filter(v => v).length;
-                analysisPlateModalSubtitle.textContent = `共 ${uniquePlates.length} 辆车 · ${hasDataCount} 辆有数据 · 已选 ${analysisTempPlateSelection.size} 辆`;
+                const searchTerm = analysisPlateSearchInput ? analysisPlateSearchInput.value.trim().toUpperCase() : '';
+                const visiblePlates = searchTerm
+                    ? uniquePlates.filter(p => String(p).toUpperCase().includes(searchTerm))
+                    : uniquePlates;
+
+                analysisPlateModalSubtitle.textContent = searchTerm
+                    ? `共 ${uniquePlates.length} 辆车 · 找到 ${visiblePlates.length} 辆 · ${hasDataCount} 辆有数据 · 已选 ${analysisTempPlateSelection.size} 辆`
+                    : `共 ${uniquePlates.length} 辆车 · ${hasDataCount} 辆有数据 · 已选 ${analysisTempPlateSelection.size} 辆`;
+
                 analysisPlateGrid.innerHTML = '';
-                uniquePlates.forEach(p => {
+                if (!visiblePlates.length) {
+                    analysisPlateGrid.innerHTML = `<div style="grid-column:1/-1;padding:1.2rem;text-align:center;color:#8ba3bb;"><i class="fas fa-search"></i> 找不到符合条件的车牌</div>`;
+                    return;
+                }
+
+                visiblePlates.forEach(p => {
                     const btn = document.createElement('button');
                     btn.className = 'modal-btn'; btn.dataset.plate = p;
                     if (plateHasData[p]) { btn.classList.add('has-data'); btn.innerHTML = `${p} <span class="data-status">●</span>`; }
@@ -3816,11 +3873,13 @@
                         const plate = this.dataset.plate;
                         if (analysisTempPlateSelection.has(plate)) { analysisTempPlateSelection.delete(plate); this.classList.remove('active'); }
                         else { analysisTempPlateSelection.add(plate); this.classList.add('active'); }
-                        analysisPlateModalSubtitle.textContent = `共 ${uniquePlates.length} 辆车 · ${hasDataCount} 辆有数据 · 已选 ${analysisTempPlateSelection.size} 辆`;
+                        const currentSearch = analysisPlateSearchInput ? analysisPlateSearchInput.value.trim().toUpperCase() : '';
+                        analysisPlateModalSubtitle.textContent = currentSearch
+                            ? `共 ${uniquePlates.length} 辆车 · 找到 ${visiblePlates.length} 辆 · ${hasDataCount} 辆有数据 · 已选 ${analysisTempPlateSelection.size} 辆`
+                            : `共 ${uniquePlates.length} 辆车 · ${hasDataCount} 辆有数据 · 已选 ${analysisTempPlateSelection.size} 辆`;
                     });
                     analysisPlateGrid.appendChild(btn);
                 });
-                analysisPlateModal.classList.add('active');
             }
 
             function openAnalysisPlantModal() {
@@ -3911,6 +3970,8 @@
             plateModal.addEventListener('click', function(e) { if (e.target === this) closePlateModal(); });
             plateYearFilter.addEventListener('change', buildPlateGrid);
             if (plateSearchInput) plateSearchInput.addEventListener('input', buildPlateGrid);
+            if (analysisPlateSearchInput) analysisPlateSearchInput.addEventListener('input', buildAnalysisPlateGrid);
+            if (expensePlateSearchInput) expensePlateSearchInput.addEventListener('input', buildExpensePlateGrid);
             plateSelectAllBtn.addEventListener('click', function() { document.querySelectorAll('#plateGrid .modal-btn').forEach(btn => { if (!btn.classList.contains('no-data')) { tempPlateSelection.add(btn.dataset.plate); btn.classList.add('active'); } }); });
             plateDeselectAllBtn.addEventListener('click', function() { tempPlateSelection.clear(); document.querySelectorAll('#plateGrid .modal-btn').forEach(btn => btn.classList.remove('active')); });
             plateConfirmBtn.addEventListener('click', function() { currentPlateFilter = new Set(tempPlateSelection); currentPlantFilter = new Set(); currentTypeFilter = new Set(); expandedRows.clear(); singleVehicleMonthFilter = 'all'; closePlateModal(); renderAll(); });
