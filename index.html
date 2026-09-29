@@ -183,6 +183,14 @@
         .plate-filter-controls .control-group { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
         .plate-filter-controls .control-group label { font-size: 0.8rem; font-weight: 500; color: #2a5075; }
         .plate-filter-controls .control-group select { border: 1px solid #dce6f2; background: white; padding: 0.2rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 500; color: #0b2b4a; outline: none; cursor: pointer; }
+        .plate-search-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.8rem; }
+        .plate-search-row label { font-size: 0.8rem; font-weight: 500; color: #2a5075; white-space: nowrap; }
+        .plate-search-input-wrap { position: relative; flex: 1; }
+        .plate-search-input-wrap i { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #8ba3bb; font-size: 0.8rem; pointer-events: none; }
+        .plate-search-input { width: 100%; box-sizing: border-box; border: 1px solid #dce6f2; background: #fff; padding: 0.42rem 0.75rem 0.42rem 2rem; border-radius: 20px; font-size: 0.8rem; color: #0b2b4a; outline: none; transition: 0.2s; }
+        .plate-search-input:focus { border-color: #6aa3db; box-shadow: 0 0 0 3px rgba(106,163,219,0.12); }
+        .plate-search-input::placeholder { color: #a9b9c9; }
+
         .plate-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.5rem; max-height: 300px; overflow-y: auto; padding: 0.2rem 0; }
         .plate-grid .modal-btn { flex: none; min-width: 0; font-size: 0.8rem; padding: 0.4rem 0.6rem; }
         .plate-grid .modal-btn.has-data { border-color: #1a5fb4; background: #f0f6ff; color: #0b2b4a; }
@@ -307,10 +315,25 @@
         .heatmap-table th { background: #fafcff; color: #1a4670; font-weight: 600; padding: 0.3rem 0.5rem; position: sticky; top: 0; z-index: 10; white-space: nowrap; font-size: 0.65rem; box-shadow: 0 1px 0 #eef3fa; }
         .heatmap-table th.row-header { position: sticky; left: 0; z-index: 11; background: #fafcff; text-align: left; min-width: 90px; box-shadow: 1px 0 0 #eef3fa; }
         .heatmap-table td.row-header { position: sticky; left: 0; z-index: 5; background: white; text-align: left; font-weight: 500; color: #0b2b4a; padding: 0.3rem 0.5rem; white-space: nowrap; box-shadow: 1px 0 0 #eef3fa; }
+        .heatmap-table th.meta-col, .heatmap-table td.meta-col { position: sticky; z-index: 6; background: #fff; white-space: nowrap; text-align: left; box-shadow: 1px 0 0 #eef3fa; }
+        .heatmap-table th.meta-col { background: #fafcff; z-index: 12; font-weight: 600; }
+        .heatmap-table .meta-plate { left: 0; min-width: 90px; }
+        .heatmap-table .meta-plant { left: 94px; min-width: 78px; }
+        .heatmap-table .meta-type { left: 174px; min-width: 100px; }
+        .heatmap-table .meta-avg { left: 276px; min-width: 92px; text-align: right !important; }
+        .heatmap-table td.meta-avg { font-weight: 600; color: #1a4670; background-color: #ede7f6; } /* 平均值列浅紫色 */
+        .heatmap-sort-select { border: 1px solid #c8d9ea; border-radius: 7px; padding: 0.25rem 0.45rem; font-size: 0.68rem; color: #1a4670; background: #fff; outline: none; cursor: pointer; }
         .heatmap-table td.cell { padding: 0.35rem 0.5rem; text-align: center; border-radius: 4px; cursor: pointer; transition: 0.15s; color: #0b2b4a; font-variant-numeric: tabular-nums; min-width: 52px; font-size: 0.65rem; position: relative; }
         .heatmap-table td.cell:hover { outline: 2px solid #1a5fb4; outline-offset: -2px; z-index: 3; }
         .heatmap-table td.cell.empty { background: #fafcff; color: #c5d6ea; cursor: default; }
         .heatmap-table td.cell.anomaly { box-shadow: inset 0 0 0 2px #c73b3b; font-weight: 700; color: #7a2e2e; }
+        /* 点击热力图某一行后的重点提示框：亮黄色/橙色框住整行，切换指标后仍保留选中车辆 */
+        .heatmap-table tr.heatmap-row-selected > td { box-shadow: inset 0 2px 0 #ffb300, inset 0 -2px 0 #ffb300 !important; }
+        .heatmap-table tr.heatmap-row-selected > td:first-child { box-shadow: inset 3px 0 0 #ffb300, inset 0 2px 0 #ffb300, inset 0 -2px 0 #ffb300 !important; }
+        .heatmap-table tr.heatmap-row-selected > td:last-child { box-shadow: inset -3px 0 0 #ffb300, inset 0 2px 0 #ffb300, inset 0 -2px 0 #ffb300 !important; }
+        .heatmap-table tr.heatmap-row-selected { cursor: pointer; }
+        .heatmap-table tr.heatmap-row-selected > td.meta-plate { color: #e67e00 !important; font-weight: 800 !important; }
+
         .heatmap-table td.cell.anomaly::after { content: "⚠"; position: absolute; top: 1px; right: 2px; font-size: 0.55rem; color: #c73b3b; }
         .heatmap-table td.cell.anomaly-good { box-shadow: inset 0 0 0 2px #c73b3b; font-weight: 700; color: #7a2e2e; }
         .heatmap-table td.cell.anomaly-good::after { content: "⚠"; position: absolute; top: 1px; right: 2px; font-size: 0.55rem; color: #c73b3b; }
@@ -320,6 +343,29 @@
         .heatmap-legend .legend-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; width: 160px; }
         .heatmap-legend .legend-bar span { flex: 1; }
         .heatmap-legend .legend-note { font-size: 0.68rem; color: #8ba3bb; margin-left: 0.5rem; font-style: italic; }
+
+        .heatmap-range-controls { display:flex; align-items:center; gap:0.35rem; margin-left:auto; flex-wrap:wrap; justify-content:flex-end; }
+        .heatmap-range-btn { border:1px solid #c8d8ea; background:#fff; color:#1a4670; border-radius:7px; padding:0.28rem 0.55rem; font-size:0.68rem; cursor:pointer; transition:0.15s; white-space:nowrap; }
+        .heatmap-range-btn:hover { border-color:#6aa3db; background:#f5f9ff; }
+        .heatmap-range-btn.active { border-color:#1a5fb4; background:#eef6ff; color:#0b4d91; font-weight:600; }
+        .heatmap-range-separator { color:#8ba3bb; font-size:0.68rem; }
+        .heatmap-range-status { width:100%; text-align:right; font-size:0.62rem; color:#8ba3bb; margin-top:0.05rem; }
+        .heatmap-range-status.ready { color:#1a5fb4; }
+        .heatmap-range-input { display:none; }
+        .heatmap-month-picker-overlay { position:fixed; inset:0; background:rgba(10,35,60,.22); z-index:99999; display:none; align-items:flex-start; justify-content:flex-end; padding:72px 24px 24px; }
+        .heatmap-month-picker-overlay.active { display:flex; }
+        .heatmap-month-picker { width:300px; max-width:calc(100vw - 32px); background:#fff; border:1px solid #d6e2ef; border-radius:12px; box-shadow:0 12px 35px rgba(20,55,90,.2); padding:14px; }
+        .heatmap-picker-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+        .heatmap-picker-title { font-size:.78rem; font-weight:700; color:#173e63; }
+        .heatmap-picker-close { border:0; background:transparent; color:#8ba3bb; cursor:pointer; font-size:1rem; padding:2px 5px; }
+        .heatmap-picker-year { width:100%; border:1px solid #c8d8ea; border-radius:7px; padding:7px 8px; color:#173e63; background:#fff; margin-bottom:10px; }
+        .heatmap-picker-months { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+        .heatmap-picker-month { border:1px solid #d4e1ee; background:#f8fbff; color:#24557e; border-radius:7px; padding:8px 4px; cursor:pointer; font-size:.7rem; }
+        .heatmap-picker-month:hover { border-color:#6aa3db; background:#eef6ff; }
+        .heatmap-picker-month.current { border-color:#1a5fb4; background:#eaf4ff; color:#0b4d91; font-weight:700; }
+        .heatmap-picker-footer { display:flex; justify-content:space-between; align-items:center; margin-top:10px; gap:8px; }
+        .heatmap-picker-clear { border:1px solid #d4e1ee; background:#fff; color:#7890a7; border-radius:7px; padding:6px 9px; cursor:pointer; font-size:.68rem; }
+        .heatmap-picker-help { font-size:.6rem; color:#8ba3bb; text-align:right; }
 
         .double-rank-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; flex: 1; }
         .rank-column { background: #fafcff; border-radius: 14px; padding: 0.7rem 0.8rem; border: 1px solid #eef3fa; }
@@ -922,7 +968,22 @@
                 <div class="analysis-card">
                     <div class="card-title">
                         <span class="title-left"><i class="fas fa-fire"></i> 车辆 × 月份热力图</span>
-                        <span style="font-size:0.7rem;color:#8ba3bb;" id="heatmapHint">颜色越深 = 数值越高 · 红框 = 异常</span>
+                        <div class="heatmap-range-controls">
+                            <button type="button" class="heatmap-range-btn" id="heatmapStartBtn">开始：未选择</button>
+                            <span class="heatmap-range-separator">至</span>
+                            <button type="button" class="heatmap-range-btn" id="heatmapEndBtn">结束：未选择</button>
+                            <input type="month" class="heatmap-range-input" id="heatmapStartInput" tabindex="-1" aria-hidden="true">
+                            <input type="month" class="heatmap-range-input" id="heatmapEndInput" tabindex="-1" aria-hidden="true">
+                            <div class="heatmap-range-status" id="heatmapRangeStatus">未选择时间范围 · 暂不进行异常判断</div>
+                            <select id="heatmapSortSelect" class="heatmap-sort-select" title="热力图排序">
+                                <option value="plate">排序：车牌</option>
+                                <option value="plant">排序：分行</option>
+                                <option value="type">排序：车型</option>
+                                <option value="avgDesc">排序：平均值高 → 低</option>
+                                <option value="avgAsc">排序：平均值低 → 高</option>
+                            </select>
+                        </div>
+                        <span style="font-size:0.7rem;color:#8ba3bb;" id="heatmapHint">颜色越深 = 数值越高 · 尚未选择完整时间范围，不标红</span>
                     </div>
                     <div class="heatmap-wrap" id="heatmapWrap">
                         <div class="analysis-empty"><i class="fas fa-spinner fa-pulse"></i><p>加载中...</p></div>
@@ -1000,6 +1061,13 @@
         <div class="modal-box">
             <button class="modal-close" id="plateModalClose"><i class="fas fa-times"></i></button>
             <div class="modal-title"><i class="fas fa-car"></i> 选择车辆</div>
+            <div class="plate-search-row">
+                <label><i class="fas fa-search"></i> 检索</label>
+                <div class="plate-search-input-wrap">
+                    <i class="fas fa-car"></i>
+                    <input id="plateSearchInput" class="plate-search-input" type="search" placeholder="输入车牌，例如 QB3465" autocomplete="off">
+                </div>
+            </div>
             <div class="plate-filter-controls">
                 <div class="control-group">
                     <label><i class="far fa-calendar-alt"></i> 年份</label>
@@ -1171,6 +1239,21 @@
     </div>
 
 </body>
+    <div class="heatmap-month-picker-overlay" id="heatmapMonthPickerOverlay" aria-hidden="true">
+        <div class="heatmap-month-picker" role="dialog" aria-modal="true" aria-labelledby="heatmapMonthPickerTitle">
+            <div class="heatmap-picker-head">
+                <div class="heatmap-picker-title" id="heatmapMonthPickerTitle">选择年月</div>
+                <button type="button" class="heatmap-picker-close" id="heatmapMonthPickerClose" aria-label="关闭">×</button>
+            </div>
+            <select class="heatmap-picker-year" id="heatmapPickerYear"></select>
+            <div class="heatmap-picker-months" id="heatmapPickerMonths"></div>
+            <div class="heatmap-picker-footer">
+                <button type="button" class="heatmap-picker-clear" id="heatmapPickerClear">清除当前选择</button>
+                <div class="heatmap-picker-help">选择一个月份后自动关闭</div>
+            </div>
+        </div>
+    </div>
+
     <script>
         (function() {
             const API_URL = 'https://script.google.com/macros/s/AKfycbxcB-nVhD7ylM4sAOfUXf_xN6rmE51nvjROHW3QJZTSLMGmrh2RDxUy2XmeziKmRG0S/exec';
@@ -1228,6 +1311,7 @@
             const plateModalClose = document.getElementById('plateModalClose');
             const plateGrid = document.getElementById('plateGrid');
             const plateModalSubtitle = document.getElementById('plateModalSubtitle');
+            const plateSearchInput = document.getElementById('plateSearchInput');
             const plateYearFilter = document.getElementById('plateYearFilter');
             const plateSelectAllBtn = document.getElementById('plateSelectAllBtn');
             const plateDeselectAllBtn = document.getElementById('plateDeselectAllBtn');
@@ -1361,6 +1445,19 @@
             const kpiM3Card = document.getElementById('kpiM3Card');
 
             const heatmapWrap = document.getElementById('heatmapWrap');
+            const heatmapStartBtn = document.getElementById('heatmapStartBtn');
+            const heatmapEndBtn = document.getElementById('heatmapEndBtn');
+            const heatmapStartInput = document.getElementById('heatmapStartInput');
+            const heatmapEndInput = document.getElementById('heatmapEndInput');
+            const heatmapRangeStatus = document.getElementById('heatmapRangeStatus');
+            const heatmapMonthPickerOverlay = document.getElementById('heatmapMonthPickerOverlay');
+            const heatmapMonthPickerClose = document.getElementById('heatmapMonthPickerClose');
+            const heatmapPickerYear = document.getElementById('heatmapPickerYear');
+            const heatmapPickerMonths = document.getElementById('heatmapPickerMonths');
+            const heatmapPickerClear = document.getElementById('heatmapPickerClear');
+            const heatmapMonthPickerTitle = document.getElementById('heatmapMonthPickerTitle');
+            let heatmapPickerTarget = null;
+            let heatmapPickerYearValue = '';
             const analysisMetricToggles = document.getElementById('analysisMetricToggles');
             const bestRankList = document.getElementById('bestRankList');
             const worstRankList = document.getElementById('worstRankList');
@@ -1413,6 +1510,12 @@
             let analysisMonthSet = new Set(['all']);
             let analysisMetricKey = 'totalLiter';
             let analysisTempYearSelection = new Set();
+            // 热力图异常分析专用时间范围（用于平均值基准）
+            let heatmapStartYM = '';
+            let heatmapEndYM = '';
+            let heatmapSortKey = 'plate';
+            // 热力图当前点击的车辆，用亮色框固定提示
+            let selectedHeatmapPlate = '';
 
             let analysisPlateFilter = new Set();
             let analysisPlantFilter = new Set();
@@ -2046,6 +2149,7 @@
                 sortedYears.forEach(y => { const opt = document.createElement('option'); opt.value = y; opt.textContent = y; plateYearFilter.appendChild(opt); });
                 if (curYear && sortedYears.includes(curYear)) plateYearFilter.value = curYear; else plateYearFilter.value = 'all';
                 tempPlateSelection = new Set(currentPlateFilter);
+                if (plateSearchInput) plateSearchInput.value = '';
                 buildPlateGrid();
                 plateModal.classList.add('active');
             }
@@ -2071,9 +2175,22 @@
                     if (hasData) plateDataMap[plate] = true;
                 });
                 const hasDataCount = Object.values(plateDataMap).filter(v => v === true).length;
-                plateModalSubtitle.textContent = `共 ${uniquePlates.length} 辆车 · ${hasDataCount} 辆有数据 · 已选 ${tempPlateSelection.size} 辆`;
+                const searchTerm = plateSearchInput ? plateSearchInput.value.trim().toUpperCase() : '';
+                const visiblePlates = searchTerm
+                    ? uniquePlates.filter(p => String(p).toUpperCase().includes(searchTerm))
+                    : uniquePlates;
+
+                plateModalSubtitle.textContent = searchTerm
+                    ? `共 ${uniquePlates.length} 辆车 · 找到 ${visiblePlates.length} 辆 · ${hasDataCount} 辆有数据 · 已选 ${tempPlateSelection.size} 辆`
+                    : `共 ${uniquePlates.length} 辆车 · ${hasDataCount} 辆有数据 · 已选 ${tempPlateSelection.size} 辆`;
+
                 plateGrid.innerHTML = '';
-                uniquePlates.forEach(p => {
+                if (!visiblePlates.length) {
+                    plateGrid.innerHTML = `<div style="grid-column:1/-1;padding:1.2rem;text-align:center;color:#8ba3bb;"><i class="fas fa-search"></i> 找不到符合条件的车牌</div>`;
+                    return;
+                }
+
+                visiblePlates.forEach(p => {
                     const btn = document.createElement('button');
                     btn.className = 'modal-btn'; btn.dataset.plate = p;
                     const hasData = plateDataMap[p];
@@ -2084,7 +2201,10 @@
                         const plate = this.dataset.plate;
                         if (tempPlateSelection.has(plate)) { tempPlateSelection.delete(plate); this.classList.remove('active'); }
                         else { tempPlateSelection.add(plate); this.classList.add('active'); }
-                        plateModalSubtitle.textContent = `共 ${uniquePlates.length} 辆车 · ${hasDataCount} 辆有数据 · 已选 ${tempPlateSelection.size} 辆`;
+                        const currentSearch = plateSearchInput ? plateSearchInput.value.trim().toUpperCase() : '';
+                        plateModalSubtitle.textContent = currentSearch
+                            ? `共 ${uniquePlates.length} 辆车 · 找到 ${visiblePlates.length} 辆 · ${hasDataCount} 辆有数据 · 已选 ${tempPlateSelection.size} 辆`
+                            : `共 ${uniquePlates.length} 辆车 · ${hasDataCount} 辆有数据 · 已选 ${tempPlateSelection.size} 辆`;
                     });
                     plateGrid.appendChild(btn);
                 });
@@ -2120,6 +2240,7 @@
             function closeTypeModal() { typeModal.classList.remove('active'); }
 
             function resetAll() {
+                selectedHeatmapPlate = '';
                 currentPlantFilter = new Set(); currentPlateFilter = new Set(); currentTypeFilter = new Set(); branchYearSet = new Set();
                 expandedRows.clear();
                 activeMetrics = new Set(['totalLiter', 'totalCost', 'totalM3', 'totalTrip']);
@@ -2654,8 +2775,7 @@
                         }
                         const display = formatMonthDisplay(m.month);
                         if (display.indexOf('TOTAL') !== -1 || display.indexOf('AVERAGE') !== -1) return;
-                        if (!isMonthVisible(display)) return;
-                        if (!isMonthInColorYearRange(display)) return;
+                        if (!isAnalysisMonthVisible(display)) return;
                         let val = null;
                         if (analysisSource === 'fuel') {
                             val = safeNumber(m[metricKey]);
@@ -2984,213 +3104,332 @@
                 kpi4Sub.textContent = maxMonth ? `${metricLabel} 合计 ${formatNumberCompact(maxVal)}` : '暂无数据';
             }
 
+            // ================================================================
+            // 🔥 热力图时间范围 / 平均值 / 异常判断
+            // ================================================================
+            function heatmapYMToNumber(ym) {
+                const p = parseYearMonth(ym);
+                return p ? (parseInt(p.year) * 100 + parseInt(p.month)) : 0;
+            }
+
+            function getHeatmapSelectedRange() {
+                if (!heatmapStartYM || !heatmapEndYM) return null;
+                const startNum = heatmapYMToNumber(heatmapStartYM);
+                const endNum = heatmapYMToNumber(heatmapEndYM);
+                if (!startNum || !endNum || startNum > endNum) return null;
+                return { start: heatmapStartYM, end: heatmapEndYM, startNum, endNum };
+            }
+
+            function isHeatmapMonthInSelectedRange(display) {
+                const range = getHeatmapSelectedRange();
+                if (!range) return false;
+                const n = heatmapYMToNumber(display);
+                return n >= range.startNum && n <= range.endNum;
+            }
+
+            function getHeatmapMetricValue(month, metricKey) {
+                if (!month) return null;
+                if (analysisSource === 'fuel') return safeNumber(month[metricKey]);
+                if (metricKey === 'totalExpense') {
+                    let sum = 0, hasAny = false;
+                    EXPENSE_TYPES.forEach(t => {
+                        const v = safeNumber(month[t.key]);
+                        if (v !== null) { sum += v; hasAny = true; }
+                    });
+                    return hasAny ? sum : null;
+                }
+                return safeNumber(month[metricKey]);
+            }
+
+            function getHeatmapMonthsArray(vehicle) {
+                return analysisSource === 'fuel' ? (vehicle.months || []) : (vehicle.expenseMonths || []);
+            }
+
+            function isHeatmapEmptyMonth(month) {
+                return analysisSource === 'fuel' ? isEmptyMonth(month) : isEmptyExpenseMonth(month);
+            }
+
+            // 平均值：只根据「开始/结束」范围计算
+            function getHeatmapRangeAverage(vehicle, metricKey) {
+                const range = getHeatmapSelectedRange();
+                if (!range) return 0;
+                const values = [];
+                getHeatmapMonthsArray(vehicle).forEach(m => {
+                    if (!m || isHeatmapEmptyMonth(m)) return;
+                    const display = formatMonthDisplay(m.month);
+                    if (display.indexOf('TOTAL') !== -1 || display.indexOf('AVERAGE') !== -1) return;
+                    if (!isMonthVisible(display)) return;
+                    if (!isHeatmapMonthInSelectedRange(display)) return;
+                    const val = getHeatmapMetricValue(m, metricKey);
+                    if (val !== null && val > 0) values.push(val);
+                });
+                return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+            }
+
+            function getHeatmapRangeAverageMap(metricKey) {
+                const map = {};
+                allData.filter(isAnalysisVehicleVisible).forEach(v => {
+                    map[v.vehicleNumber || '未知'] = getHeatmapRangeAverage(v, metricKey);
+                });
+                return map;
+            }
+
+            function getHeatmapAvailableYears() {
+                const years = new Set();
+                const addMonths = (arr) => (arr || []).forEach(m => {
+                    if (!m) return;
+                    const display = formatMonthDisplay(m.month);
+                    const p = parseYearMonth(display);
+                    if (p && display.indexOf('TOTAL') === -1 && display.indexOf('AVERAGE') === -1) years.add(p.year);
+                });
+                allData.forEach(v => {
+                    addMonths(analysisSource === 'fuel' ? v.months : v.expenseMonths);
+                });
+                if (analysisSource === 'expense') allExpenseData.forEach(v => addMonths(v.expenseMonths));
+                if (!years.size) {
+                    const now = new Date();
+                    years.add(String(now.getFullYear()));
+                }
+                return Array.from(years).sort();
+            }
+
+            function buildHeatmapMonthPicker() {
+                const years = getHeatmapAvailableYears();
+                if (!heatmapPickerYearValue || !years.includes(heatmapPickerYearValue)) {
+                    const existing = heatmapPickerTarget === 'start' ? heatmapStartYM : heatmapEndYM;
+                    const parsed = parseYearMonth(existing);
+                    heatmapPickerYearValue = parsed ? parsed.year : years[years.length - 1];
+                }
+                heatmapPickerYear.innerHTML = years.map(y => `<option value="${y}">${y} 年</option>`).join('');
+                heatmapPickerYear.value = heatmapPickerYearValue;
+                const selected = heatmapPickerTarget === 'start' ? heatmapStartYM : heatmapEndYM;
+                const selectedParsed = parseYearMonth(selected);
+                const selectedMonth = selectedParsed ? selectedParsed.month : '';
+                heatmapPickerMonths.innerHTML = '';
+                for (let i = 1; i <= 12; i++) {
+                    const mm = String(i).padStart(2, '0');
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'heatmap-picker-month' + (heatmapPickerYearValue === selectedParsed?.year && selectedMonth === mm ? ' current' : '');
+                    btn.textContent = `${i} 月`;
+                    btn.dataset.ym = `${heatmapPickerYearValue}-${mm}`;
+                    btn.addEventListener('click', function() {
+                        const ym = this.dataset.ym;
+                        if (heatmapPickerTarget === 'start') heatmapStartYM = ym;
+                        else if (heatmapPickerTarget === 'end') heatmapEndYM = ym;
+                        closeHeatmapMonthPicker();
+                        updateHeatmapRangeUI();
+                        renderAnalysisAll();
+                    });
+                    heatmapPickerMonths.appendChild(btn);
+                }
+            }
+
+            function openHeatmapMonthPicker(target) {
+                heatmapPickerTarget = target;
+                heatmapPickerYearValue = '';
+                heatmapMonthPickerTitle.textContent = target === 'start' ? '选择开始年月' : '选择结束年月';
+                buildHeatmapMonthPicker();
+                heatmapMonthPickerOverlay.classList.add('active');
+                heatmapMonthPickerOverlay.setAttribute('aria-hidden', 'false');
+            }
+
+            function closeHeatmapMonthPicker() {
+                heatmapMonthPickerOverlay.classList.remove('active');
+                heatmapMonthPickerOverlay.setAttribute('aria-hidden', 'true');
+                heatmapPickerTarget = null;
+            }
+
+            function clearHeatmapPickerSelection() {
+                if (heatmapPickerTarget === 'start') heatmapStartYM = '';
+                if (heatmapPickerTarget === 'end') heatmapEndYM = '';
+                closeHeatmapMonthPicker();
+                updateHeatmapRangeUI();
+                renderAnalysisAll();
+            }
+
+            function updateHeatmapRangeUI() {
+                const startText = heatmapStartYM || '未选择';
+                const endText = heatmapEndYM || '未选择';
+                heatmapStartBtn.textContent = `开始：${startText}`;
+                heatmapEndBtn.textContent = `结束：${endText}`;
+                heatmapStartBtn.classList.toggle('active', !!heatmapStartYM);
+                heatmapEndBtn.classList.toggle('active', !!heatmapEndYM);
+
+                const range = getHeatmapSelectedRange();
+                if (!heatmapStartYM && !heatmapEndYM) {
+                    heatmapRangeStatus.textContent = '未选择时间范围 · 暂不进行异常判断';
+                    heatmapRangeStatus.classList.remove('ready');
+                } else if (!range) {
+                    heatmapRangeStatus.textContent = '请选择完整范围，并确保结束年月不早于开始年月';
+                    heatmapRangeStatus.classList.remove('ready');
+                } else {
+                    heatmapRangeStatus.textContent = `平均值计算范围：${range.start} 至 ${range.end}`;
+                    heatmapRangeStatus.classList.add('ready');
+                }
+            }
+
+            // 异常判断：平均值来自「开始/结束」范围，比较范围来自「年份/月份」筛选
             function detectAnomalies(metricKey, direction) {
                 const dir = direction || 'high';
                 const anomalyMap = {};
                 let anomalyVehicleCount = 0;
                 let anomalyCellCount = 0;
 
-                const isFuelOrCostLinked = (metricKey === 'totalLiter' || metricKey === 'totalCost');
-                const isCostPerM3Linked = (metricKey === 'costPerM3');
-                const isCostPerTripLinked = (metricKey === 'costPerTrip');
-
-                const getMonthsArr = (v) => analysisSource === 'fuel' ? (v.months || []) : (v.expenseMonths || []);
-                const getValByKey = (m, key) => {
-                    if (!m) return null;
-                    if (analysisSource === 'fuel') {
-                        return safeNumber(m[key]);
-                    } else {
-                        if (key === 'totalExpense') {
-                            let sum = 0, hasAny2 = false;
-                            EXPENSE_TYPES.forEach(t => { const v2 = safeNumber(m[t.key]); if (v2 !== null) { sum += v2; hasAny2 = true; } });
-                            return hasAny2 ? sum : null;
-                        } else {
-                            return safeNumber(m[key]);
-                        }
-                    }
-                };
-                const isEmpty = (m) => {
-                    if (!m) return true;
-                    return analysisSource === 'fuel' ? isEmptyMonth(m) : isEmptyExpenseMonth(m);
-                };
-
-                function calcAvg(values) {
-                    const valid = values.filter(x => x !== null && x > 0);
-                    if (!valid.length) return { avg: 0, count: 0 };
-                    return { avg: valid.reduce((a, b) => a + b, 0) / valid.length, count: valid.length };
-                }
-
-                function toNum(display) {
-                    const p = parseYearMonth(display);
-                    if (!p) return 0;
-                    return parseInt(p.year) * 100 + parseInt(p.month);
-                }
-
-                function getPast6MonthRange(display) {
-                    const p = parseYearMonth(display);
-                    if (!p) return { start: 0, end: 0 };
-                    const y = parseInt(p.year);
-                    const m = parseInt(p.month);
-                    let startY = y, startM = m - 6;
-                    if (startM <= 0) { startY -= 1; startM += 12; }
-                    let endY = y, endM = m - 1;
-                    if (endM <= 0) { endY -= 1; endM += 12; }
-                    return { start: startY * 100 + startM, end: endY * 100 + endM };
-                }
-
-                function getFallbackAvg(allMonthsArr, monthDisplay, key) {
-                    const p = parseYearMonth(monthDisplay);
-                    if (!p) return null;
-                    const currentNum = parseInt(p.year) * 100 + parseInt(p.month);
-                    const curYear = parseInt(p.year);
-
-                    const sameYearPastValues = allMonthsArr
-                        .filter(item => {
-                            const mp = parseYearMonth(item.display);
-                            if (!mp) return false;
-                            if (parseInt(mp.year) !== curYear) return false;
-                            return toNum(item.display) < currentNum;
-                        })
-                        .map(item => item.value);
-                    const r1 = calcAvg(sameYearPastValues);
-                    if (r1.count >= 6) return { avg: r1.avg, count: r1.count, source: 'sameYear' };
-
-                    const range = getPast6MonthRange(monthDisplay);
-                    const past6Values = allMonthsArr
-                        .filter(item => {
-                            const n = toNum(item.display);
-                            return n >= range.start && n <= range.end;
-                        })
-                        .map(item => item.value);
-                    const r2 = calcAvg(past6Values);
-                    if (r2.count >= 6) return { avg: r2.avg, count: r2.count, source: 'past6' };
-
-                    const r3 = calcAvg(allMonthsArr.map(item => item.value));
-                    if (r3.count >= 3) return { avg: r3.avg, count: r3.count, source: 'allTime' };
-
-                    return null;
-                }
+                // 平均值范围必须选好，否则不判断
+                const avgRange = getHeatmapSelectedRange();
+                if (!avgRange) return { anomalyMap, anomalyVehicleCount, anomalyCellCount };
 
                 const vehicles = allData.filter(isAnalysisVehicleVisible);
 
-                vehicles.forEach(v => {
-                    const allMonthsArr = [];
-                    getMonthsArr(v).forEach(m => {
-                        if (isEmpty(m)) return;
+                // 平均值序列（只受「开始/结束」限制）
+                function buildAvgSeries(v, key) {
+                    const arr = [];
+                    getHeatmapMonthsArray(v).forEach(m => {
+                        if (!m || isHeatmapEmptyMonth(m)) return;
                         const display = formatMonthDisplay(m.month);
                         if (display.indexOf('TOTAL') !== -1 || display.indexOf('AVERAGE') !== -1) return;
                         if (!isMonthVisible(display)) return;
-                        allMonthsArr.push({ display, raw: m });
+                        if (!isHeatmapMonthInSelectedRange(display)) return;
+                        arr.push({ display, raw: m, value: getHeatmapMetricValue(m, key) });
                     });
+                    return arr;
+                }
 
-                    // 🔥 修复：保留 raw 字段，避免 item.raw 为 undefined
-                    const metricSeries = allMonthsArr.map(item => ({
-                        display: item.display,
-                        raw: item.raw,
-                        value: getValByKey(item.raw, metricKey)
-                    }));
+                // 待比较序列（受「年份/月份」筛选影响，即 isAnalysisMonthVisible）
+                function buildCheckSeries(v, key) {
+                    const arr = [];
+                    getHeatmapMonthsArray(v).forEach(m => {
+                        if (!m || isHeatmapEmptyMonth(m)) return;
+                        const display = formatMonthDisplay(m.month);
+                        if (display.indexOf('TOTAL') !== -1 || display.indexOf('AVERAGE') !== -1) return;
+                        if (!isAnalysisMonthVisible(display)) return;
+                        arr.push({ display, raw: m, value: getHeatmapMetricValue(m, key) });
+                    });
+                    return arr;
+                }
 
-                    const { avg: globalAvg } = calcAvg(metricSeries.map(x => x.value));
-                    if (!globalAvg) return;
+                function calcAvg(series) {
+                    const valid = series.map(x => x.value).filter(v => v !== null && v > 0);
+                    return valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : 0;
+                }
 
-                    let lm3AnomalySet = new Set();
-                    if (isCostPerM3Linked) {
-                        const lm3Series = allMonthsArr.map(item => ({
-                            display: item.display,
-                            raw: item.raw,
-                            value: getValByKey(item.raw, 'literPerM3')
-                        }));
-                        metricSeries.forEach(x => {
-                            const val = x.value;
-                            if (val === null || val <= 0) return;
-                            const r = getFallbackAvg(lm3Series, x.display, 'literPerM3');
-                            if (r && val > r.avg * 1.1) lm3AnomalySet.add(x.display);
-                        });
-                    }
+                vehicles.forEach(v => {
+                    /*
+                     * 特别规则（油耗分析）：
+                     * 总油耗 / 总花费只有在以下 3 个条件同时成立时才标红：
+                     * 1. 当前月份总油耗 > 该车所选时间范围的平均总油耗
+                     * 2. 当前月份总花费 > 该车所选时间范围的平均总花费
+                     * 3. 当前月份总趟   > 该车所选时间范围的平均总趟
+                     *
+                     * 注意：
+                     * - 只对 totalLiter / totalCost 使用这个交叉规则。
+                     * - totalTrip 本身仍保留原来的逻辑。
+                     * - 未选择起始/结束月份时，前面已经直接 return，因此不会标红。
+                     */
+                    const isFuelCrossMetric =
+                        analysisSource === 'fuel' &&
+                        (metricKey === 'totalLiter' || metricKey === 'totalCost');
 
-                    let lTripAnomalySet = new Set();
-                    if (isCostPerTripLinked) {
-                        const lTripSeries = allMonthsArr.map(item => ({
-                            display: item.display,
-                            raw: item.raw,
-                            value: getValByKey(item.raw, 'literPerTrip')
-                        }));
-                        metricSeries.forEach(x => {
-                            const val = x.value;
-                            if (val === null || val <= 0) return;
-                            const r = getFallbackAvg(lTripSeries, x.display, 'literPerTrip');
-                            if (r && val > r.avg * 1.1) lTripAnomalySet.add(x.display);
-                        });
-                    }
+                    if (isFuelCrossMetric) {
+                        /*
+                         * 油耗分析的交叉规则：
+                         *
+                         * ① 总油耗：
+                         *    当前总油耗 > 总油耗平均值
+                         *    AND
+                         *    当前总趟 <= 总趟平均值
+                         *    → 总油耗标红
+                         *
+                         * ② 总花费：
+                         *    当前总花费 > 总花费平均值
+                         *    AND
+                         *    当前总趟 <= 总趟平均值
+                         *    → 总花费标红
+                         *
+                         * 总油耗和总花费彼此独立，不需要同时超过平均值。
+                         *
+                         * 例如：
+                         * - 总油耗高 + 总趟高 → 总油耗不标红
+                         * - 总油耗高 + 总趟低 → 总油耗标红
+                         * - 总花费高 + 总趟高 → 总花费不标红
+                         * - 总花费高 + 总趟低 → 总花费标红
+                         */
 
-                    let tripAvgCache = {};
-                    if (isFuelOrCostLinked) {
-                        const tripSeries = allMonthsArr.map(item => ({
-                            display: item.display,
-                            raw: item.raw,
-                            value: getValByKey(item.raw, 'totalTrip')
-                        }));
-                        metricSeries.forEach(x => {
-                            if (tripAvgCache[x.display]) return;
-                            const r = getFallbackAvg(tripSeries, x.display, 'totalTrip');
-                            tripAvgCache[x.display] = r;
-                        });
-                    }
+                        const tripAvg = calcAvg(buildAvgSeries(v, 'totalTrip'));
+                        if (!tripAvg) return;
 
-                    const anomalies = new Set();
+                        const checkTrip = buildCheckSeries(v, 'totalTrip');
+                        const tripMap = new Map(checkTrip.map(x => [x.display, x.value]));
 
-                    metricSeries.forEach(item => {
-                        const val = item.value;
-                        if (val === null || val === 0) return;
+                        const anomalies = new Set();
 
-                        const avgResult = getFallbackAvg(metricSeries, item.display, metricKey);
-                        if (!avgResult) return;
+                        if (metricKey === 'totalLiter') {
+                            const literAvg = calcAvg(buildAvgSeries(v, 'totalLiter'));
+                            if (!literAvg) return;
 
-                        const sameAvg = avgResult.avg;
-                        const thresholdHigh = sameAvg * 1.1;
-                        const thresholdLow = sameAvg * 0.7;
+                            const checkLiter = buildCheckSeries(v, 'totalLiter');
 
-                        if (dir === 'low') {
-                            if (val > 0 && val < thresholdLow) {
-                                anomalies.add(item.display);
-                                anomalyCellCount++;
-                            }
-                            return;
-                        }
+                            checkLiter.forEach(item => {
+                                const liter = item.value;
+                                const trip = tripMap.get(item.display);
 
-                        if (isFuelOrCostLinked) {
-                            const tripVal = getValByKey(item.raw, 'totalTrip');
-                            const tripIsZero = (tripVal === null || tripVal === 0);
-
-                            if (tripIsZero) {
-                                if (val > globalAvg * 0.3) {
+                                // 总油耗高，但总趟没有高于平均值 → 标红
+                                if (
+                                    liter !== null && liter > 0 && liter > literAvg &&
+                                    trip !== undefined && trip !== null && trip >= 0 && trip <= tripAvg
+                                ) {
                                     anomalies.add(item.display);
                                     anomalyCellCount++;
                                 }
-                            } else {
-                                if (val > thresholdHigh) {
-                                    const tripAvgResult = tripAvgCache[item.display];
-                                    const tripThreshold = tripAvgResult ? tripAvgResult.avg * 1.1 : 0;
-                                    const tripRise = tripThreshold > 0 && tripVal > tripThreshold;
-                                    if (!tripRise) {
-                                        anomalies.add(item.display);
-                                        anomalyCellCount++;
-                                    }
+                            });
+                        }
+
+                        if (metricKey === 'totalCost') {
+                            const costAvg = calcAvg(buildAvgSeries(v, 'totalCost'));
+                            if (!costAvg) return;
+
+                            const checkCost = buildCheckSeries(v, 'totalCost');
+
+                            checkCost.forEach(item => {
+                                const cost = item.value;
+                                const trip = tripMap.get(item.display);
+
+                                // 总花费高，但总趟没有高于平均值 → 标红
+                                if (
+                                    cost !== null && cost > 0 && cost > costAvg &&
+                                    trip !== undefined && trip !== null && trip >= 0 && trip <= tripAvg
+                                ) {
+                                    anomalies.add(item.display);
+                                    anomalyCellCount++;
                                 }
-                            }
-                            return;
+                            });
                         }
 
-                        if (isCostPerM3Linked) {
-                            if (val > thresholdHigh && lm3AnomalySet.has(item.display)) {
-                                anomalies.add(item.display);
-                                anomalyCellCount++;
-                            }
-                            return;
+                        if (anomalies.size > 0) {
+                            anomalyMap[v.vehicleNumber || '未知'] = anomalies;
+                            anomalyVehicleCount++;
                         }
+                        return;
+                    }
 
-                        if (isCostPerTripLinked) {
-                            if (val > thresholdHigh && lTripAnomalySet.has(item.display)) {
+                    // 其他指标继续使用原来的异常判断逻辑
+                    const avgSeries = buildAvgSeries(v, metricKey);
+                    const globalAvg = calcAvg(avgSeries);
+                    if (!globalAvg) return;
+
+                    const checkSeries = buildCheckSeries(v, metricKey);
+                    const anomalies = new Set();
+
+                    checkSeries.forEach(item => {
+                        const val = item.value;
+                        if (val === null || val <= 0) return;
+
+                        const thresholdHigh = globalAvg;
+                        const thresholdLow = globalAvg * 0.7;
+
+                        if (dir === 'low') {
+                            if (val < thresholdLow) {
                                 anomalies.add(item.display);
                                 anomalyCellCount++;
                             }
@@ -3227,22 +3466,40 @@
                 const anomaly = detectAnomalies(analysisMetricKey, anomalyDir);
 
                 const maxMap = getAnalysisVehicleMaxMap(analysisMetricKey);
-                const avgMap = getAnalysisVehicleAvgMap(analysisMetricKey);
+                const selectedAvgMap = getHeatmapRangeAverageMap(analysisMetricKey);
+
+                const rows = data.map(v => {
+                    const vehicleAvg = selectedAvgMap[v.plate] || 0;
+                    return { v, vehicleAvg };
+                });
+                rows.sort((a, b) => {
+                    const av = a.v, bv = b.v;
+                    if (heatmapSortKey === 'plant') return String(av.plant || '').localeCompare(String(bv.plant || '')) || av.plate.localeCompare(bv.plate);
+                    if (heatmapSortKey === 'type') return String(av.type || '').localeCompare(String(bv.type || '')) || av.plate.localeCompare(bv.plate);
+                    if (heatmapSortKey === 'avgDesc') return b.vehicleAvg - a.vehicleAvg || av.plate.localeCompare(bv.plate);
+                    if (heatmapSortKey === 'avgAsc') return a.vehicleAvg - b.vehicleAvg || av.plate.localeCompare(bv.plate);
+                    return av.plate.localeCompare(bv.plate);
+                });
 
                 let html = `<table class="heatmap-table"><thead><tr>`;
-                html += `<th class="row-header">车牌</th>`;
+                html += `<th class="meta-col meta-plate">车牌</th>`;
+                html += `<th class="meta-col meta-plant">分行</th>`;
+                html += `<th class="meta-col meta-type">车型</th>`;
+                html += `<th class="meta-col meta-avg">平均值</th>`;
                 sortedMonths.forEach(m => { html += `<th>${m}</th>`; });
                 html += `</tr></thead><tbody>`;
-                data.sort((a, b) => a.plate.localeCompare(b.plate));
 
-                data.forEach(v => {
+                rows.forEach(({v, vehicleAvg}) => {
                     const monthMap = {};
                     v.months.forEach(m => { monthMap[m.display] = m.values[analysisMetricKey]; });
                     const plantColor = v.plant === 'Selangau' ? '#00BCD4' : v.plant === 'Stabau' ? '#E53935' : v.plant === 'SG Merah' ? '#1A73E8' : '#8ba3bb';
                     const vehicleMax = maxMap[v.plate] || 0;
-                    const vehicleAvg = avgMap[v.plate] || 0;
-                    html += `<tr>`;
-                    html += `<td class="row-header" style="color:${plantColor};">${v.plate}</td>`;
+                    const isSelectedRow = selectedHeatmapPlate && selectedHeatmapPlate === v.plate;
+                    html += `<tr class="heatmap-row ${isSelectedRow ? 'heatmap-row-selected' : ''}" data-plate="${v.plate}">`;
+                    html += `<td class="meta-col meta-plate" style="color:${plantColor};font-weight:600;">${v.plate}</td>`;
+                    html += `<td class="meta-col meta-plant">${v.plant || '—'}</td>`;
+                    html += `<td class="meta-col meta-type">${v.type || '—'}</td>`;
+                    html += `<td class="meta-col meta-avg">${analysisMetricKey === 'totalExpense' ? 'RM ' : ''}${formatNumberCompact(vehicleAvg)}</td>`;
                     sortedMonths.forEach(m => {
                         const val = monthMap[m];
                         if (val === undefined || val === null) { html += `<td class="cell empty">—</td>`; }
@@ -3253,7 +3510,7 @@
                             const isAnomaly = anomaly.anomalyMap[v.plate] && anomaly.anomalyMap[v.plate].has(m);
                             const cls = `cell ${isAnomaly ? anomalyCls : ''}`;
                             const anomalyTip = isAnomaly
-                                ? (higherBetter ? '\n⚠ 表现差：低于历史平均 0.7 倍' : '\n⚠ 异常：高于历史平均 1.1 倍')
+                                ? (higherBetter ? '\n⚠ 表现差：低于平均值 0.7 倍' : '\n⚠ 异常：高于平均值')
                                 : '';
                             const tooltip = `${v.plate} · ${m}\n${analysisMetricKey === 'totalExpense' ? 'RM ' : ''}${formatNumber(val)}\n该车最大: ${formatNumber(vehicleMax)}\n该车平均: ${formatNumber(vehicleAvg)}${anomalyTip}`;
                             html += `<td class="${cls}" style="background:${bg};color:${textColor};" title="${tooltip}">${formatNumberCompact(val)}</td>`;
@@ -3263,6 +3520,16 @@
                 });
                 html += `</tbody></table>`;
                 heatmapWrap.innerHTML = html;
+
+                // 点击整行固定提示；再次点击同一行可取消。切换总油耗/总趟/总花费等指标时会保留。
+                heatmapWrap.querySelectorAll('tbody tr.heatmap-row').forEach(row => {
+                    row.addEventListener('click', function() {
+                        const plate = this.dataset.plate || '';
+                        selectedHeatmapPlate = selectedHeatmapPlate === plate ? '' : plate;
+                        heatmapWrap.querySelectorAll('tbody tr.heatmap-row').forEach(r => r.classList.remove('heatmap-row-selected'));
+                        if (selectedHeatmapPlate === plate) this.classList.add('heatmap-row-selected');
+                    });
+                });
 
                 const legendBar = document.getElementById('heatmapLegendBar');
                 if (legendBar) {
@@ -3275,7 +3542,7 @@
 
                 const hint = document.getElementById('heatmapHint');
                 if (hint) {
-                    hint.textContent = higherBetter ? '颜色越深 = 数值越高 · 红框 = 表现差' : '颜色越深 = 数值越高 · 红框 = 异常';
+                    hint.textContent = higherBetter ? '颜色越深 = 数值越高 · 红框 = 低于平均值 0.7 倍' : '颜色越深 = 数值越高 · 红框 = 高于平均值';
                 }
             }
 
@@ -3396,10 +3663,10 @@
                     const plateList = anomPlates.map(p => `<span class="highlight-plate">${p}</span>`).join('、');
                     if (higherBetter2) {
                         insights.push({ type: 'warn', icon: 'fa-exclamation-triangle',
-                            html: `发现 <strong>${anomaly.anomalyVehicleCount}</strong> 辆车表现较差（某月 ${metric.label} 低于历史平均 0.7 倍）：${plateList}${more}` });
+                            html: `发现 <strong>${anomaly.anomalyVehicleCount}</strong> 辆车表现较差（某月 ${metric.label} 低于平均值 0.7 倍）：${plateList}${more}` });
                     } else {
                         insights.push({ type: 'warn', icon: 'fa-exclamation-triangle',
-                            html: `发现 <strong>${anomaly.anomalyVehicleCount}</strong> 辆车存在异常（某月 ${metric.label} 异常）：${plateList}${more}` });
+                            html: `发现 <strong>${anomaly.anomalyVehicleCount}</strong> 辆车存在异常（某月 ${metric.label} 高于平均值）：${plateList}${more}` });
                     }
                 } else {
                     if (higherBetter2) { insights.push({ type: 'good', icon: 'fa-circle-check', html: `所有车辆的 ${metric.label} 表现正常，无明显低值` }); }
@@ -3483,6 +3750,7 @@
                 try { renderAnalysisDoubleRank(); } catch(e) { console.error('doubleRank', e); }
                 try { renderAnalysisInsights(); } catch(e) { console.error('insights', e); }
                 try { updateAnalysisYearDisplay(); } catch(e) { console.error('yearDisplay', e); }
+                try { updateHeatmapRangeUI(); } catch(e) { console.error('heatmapRangeUI', e); }
             }
 
             function updateAnalysisYearDisplay() {
@@ -3602,6 +3870,11 @@
             function resetAnalysisAll() {
                 analysisYearSet = new Set();
                 analysisMonthSet = new Set(['all']);
+                heatmapStartYM = '';
+                heatmapEndYM = '';
+                if (heatmapStartInput) heatmapStartInput.value = '';
+                if (heatmapEndInput) heatmapEndInput.value = '';
+                if (heatmapStartBtn) updateHeatmapRangeUI();
                 analysisMetricKey = analysisSource === 'fuel' ? 'totalLiter' : 'totalExpense';
                 analysisPlateFilter = new Set();
                 analysisPlantFilter = new Set();
@@ -3637,6 +3910,7 @@
             plateModalClose.addEventListener('click', closePlateModal);
             plateModal.addEventListener('click', function(e) { if (e.target === this) closePlateModal(); });
             plateYearFilter.addEventListener('change', buildPlateGrid);
+            if (plateSearchInput) plateSearchInput.addEventListener('input', buildPlateGrid);
             plateSelectAllBtn.addEventListener('click', function() { document.querySelectorAll('#plateGrid .modal-btn').forEach(btn => { if (!btn.classList.contains('no-data')) { tempPlateSelection.add(btn.dataset.plate); btn.classList.add('active'); } }); });
             plateDeselectAllBtn.addEventListener('click', function() { tempPlateSelection.clear(); document.querySelectorAll('#plateGrid .modal-btn').forEach(btn => btn.classList.remove('active')); });
             plateConfirmBtn.addEventListener('click', function() { currentPlateFilter = new Set(tempPlateSelection); currentPlantFilter = new Set(); currentTypeFilter = new Set(); expandedRows.clear(); singleVehicleMonthFilter = 'all'; closePlateModal(); renderAll(); });
@@ -3787,6 +4061,45 @@
                     }
                     renderAnalysisAll();
                 });
+            });
+
+            // 热力图开始 / 结束年月选择
+            if (heatmapStartBtn && heatmapEndBtn) {
+                heatmapStartBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openHeatmapMonthPicker('start');
+                });
+                heatmapEndBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openHeatmapMonthPicker('end');
+                });
+            }
+
+            const heatmapSortSelect = document.getElementById('heatmapSortSelect');
+            if (heatmapSortSelect) {
+                heatmapSortSelect.addEventListener('change', function() {
+                    heatmapSortKey = this.value || 'plate';
+                    renderAnalysisHeatmap();
+                });
+            }
+
+            if (heatmapPickerYear) {
+                heatmapPickerYear.addEventListener('change', function() {
+                    heatmapPickerYearValue = this.value;
+                    buildHeatmapMonthPicker();
+                });
+            }
+            if (heatmapMonthPickerClose) heatmapMonthPickerClose.addEventListener('click', closeHeatmapMonthPicker);
+            if (heatmapPickerClear) heatmapPickerClear.addEventListener('click', clearHeatmapPickerSelection);
+            if (heatmapMonthPickerOverlay) {
+                heatmapMonthPickerOverlay.addEventListener('click', function(e) {
+                    if (e.target === heatmapMonthPickerOverlay) closeHeatmapMonthPicker();
+                });
+            }
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && heatmapMonthPickerOverlay.classList.contains('active')) closeHeatmapMonthPicker();
             });
 
             analysisResetBtn.addEventListener('click', resetAnalysisAll);
