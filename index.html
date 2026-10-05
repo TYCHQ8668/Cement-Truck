@@ -899,6 +899,9 @@
                 <button class="reset-btn" style="position:static;margin-left:auto;" id="analysisResetBtn">
                     <i class="fas fa-undo-alt"></i> 重置
                 </button>
+                <button class="export-btn" style="position:static;" id="analysisExportBtn" title="导出当前分析筛选结果为Excel">
+                    <i class="fas fa-file-excel"></i> 导出分析 Excel
+                </button>
             </div>
 
             <!-- 需求 1：分析视图分类卡片 -->
@@ -1407,6 +1410,7 @@
             const analysisYearDisplayText = document.getElementById('analysisYearDisplayText');
             const analysisMonthGroup = document.getElementById('analysisMonthGroup');
             const analysisResetBtn = document.getElementById('analysisResetBtn');
+            const analysisExportBtn = document.getElementById('analysisExportBtn');
 
             const analysisVehicleCard = document.getElementById('analysisVehicleCard');
             const analysisPlantCard = document.getElementById('analysisPlantCard');
@@ -1970,7 +1974,7 @@
 
             function exportExcel() {
                 if (currentView === 'expense') { exportExpenseExcel(); return; }
-                if (currentView === 'analysis') { alert('分析视图暂不支持导出'); return; }
+                if (currentView === 'analysis') { exportAnalysisExcel(); return; }
                 const vehicles = getFilteredVehicles();
                 if (!vehicles.length) { alert('没有数据可导出'); return; }
                 const metricKeys = Array.from(activeMetrics);
@@ -1988,6 +1992,180 @@
                 XLSX.writeFile(wb, '油耗数据_' + now.toISOString().slice(0, 10) + '.xlsx');
                 statusBadge.innerHTML = `<i class="fas fa-circle" style="color:#2e7d32;"></i> 导出成功`;
                 setTimeout(() => { statusBadge.innerHTML = `<i class="fas fa-circle" style="color:#2e7d32;"></i> 已连接`; }, 3000);
+            }
+
+            function exportAnalysisExcel() {
+                try {
+                    const data = getAnalysisData();
+                    if (!data.length) {
+                        alert('当前分析筛选条件下没有可导出的数据');
+                        return;
+                    }
+
+                    const metricConfig = getAnalysisMetricConfig();
+                    const selectedMetric = metricConfig.find(c => c.key === analysisMetricKey) || metricConfig[0];
+                    const sourceLabel = analysisSource === 'fuel' ? '油耗分析' : '费用分析';
+
+                    const yearLabel = analysisYearSet.size
+                        ? Array.from(analysisYearSet).sort().join(', ')
+                        : '全部年份';
+                    const monthLabel = analysisMonthSet.has('all')
+                        ? '全部月份'
+                        : Array.from(analysisMonthSet).sort().map(m => parseInt(m)).join(', ');
+                    const plateLabel = analysisPlateFilter.size
+                        ? Array.from(analysisPlateFilter).sort().join(', ')
+                        : '全部车辆';
+                    const plantLabel = analysisPlantFilter.size
+                        ? Array.from(analysisPlantFilter).sort().join(', ')
+                        : '全部分行';
+                    const typeLabel = analysisTypeFilter.size
+                        ? Array.from(analysisTypeFilter).sort().join(', ')
+                        : '全部车型';
+
+                    /* =====================================================
+                       Sheet 1：分析汇总
+                       ===================================================== */
+                    const summaryRows = [
+                        ['分析来源', sourceLabel],
+                        ['年份', yearLabel],
+                        ['月份', monthLabel],
+                        ['车辆', plateLabel],
+                        ['分行', plantLabel],
+                        ['车型', typeLabel],
+                        ['当前指标', selectedMetric.label],
+                        [],
+                        ['车牌', '分厂', '品牌', '车型', ...metricConfig.map(c => c.label)]
+                    ];
+
+                    data.forEach(v => {
+                        const row = [v.plate, v.plant, v.brand, v.type];
+                        metricConfig.forEach(c => {
+                            const val = v.values[c.key];
+                            row.push(typeof val === 'number' && isFinite(val)
+                                ? Math.round(val * 1000) / 1000
+                                : '');
+                        });
+                        summaryRows.push(row);
+                    });
+
+                    /* =====================================================
+                       Sheet 2：月度明细
+                       ===================================================== */
+                    const detailRows = [
+                        ['分析来源', sourceLabel],
+                        ['当前指标', selectedMetric.label],
+                        [],
+                        ['车牌', '分厂', '品牌', '车型', '月份', ...metricConfig.map(c => c.label)]
+                    ];
+
+                    data.forEach(v => {
+                        (v.months || []).forEach(m => {
+                            const row = [v.plate, v.plant, v.brand, v.type, m.display];
+                            metricConfig.forEach(c => {
+                                const val = m.values[c.key];
+                                row.push(typeof val === 'number' && isFinite(val)
+                                    ? Math.round(val * 1000) / 1000
+                                    : '');
+                            });
+                            detailRows.push(row);
+                        });
+                    });
+
+                    /* =====================================================
+                       Sheet 3：热力图数据
+                       当前选择的分析指标 + 当前筛选条件
+                       ===================================================== */
+                    const heatmapRows = [
+                        ['分析来源', sourceLabel],
+                        ['指标', selectedMetric.label],
+                        ['时间范围', yearLabel + ' / ' + monthLabel],
+                        [],
+                        ['车牌', '分厂', '品牌', '车型']
+                    ];
+
+                    const heatmapMonths = [];
+                    data.forEach(v => {
+                        (v.months || []).forEach(m => {
+                            if (!heatmapMonths.includes(m.display)) heatmapMonths.push(m.display);
+                        });
+                    });
+                    heatmapMonths.sort((a, b) => {
+                        const pa = parseYearMonth(a);
+                        const pb = parseYearMonth(b);
+                        if (!pa || !pb) return String(a).localeCompare(String(b));
+                        return pa.year - pb.year || pa.month - pb.month;
+                    });
+
+                    heatmapRows[4].push(...heatmapMonths);
+                    heatmapRows[4].push('平均值');
+
+                    data.forEach(v => {
+                        const monthMap = {};
+                        (v.months || []).forEach(m => {
+                            monthMap[m.display] = m.values[analysisMetricKey];
+                        });
+
+                        const row = [v.plate, v.plant, v.brand, v.type];
+                        heatmapMonths.forEach(month => {
+                            const val = monthMap[month];
+                            row.push(typeof val === 'number' && isFinite(val)
+                                ? Math.round(val * 1000) / 1000
+                                : '');
+                        });
+
+                        const avgValues = heatmapMonths
+                            .map(month => monthMap[month])
+                            .filter(v2 => typeof v2 === 'number' && isFinite(v2) && v2 > 0);
+                        const avg = avgValues.length
+                            ? avgValues.reduce((a, b) => a + b, 0) / avgValues.length
+                            : '';
+                        row.push(avg === '' ? '' : Math.round(avg * 1000) / 1000);
+                        heatmapRows.push(row);
+                    });
+
+                    const wb = XLSX.utils.book_new();
+
+                    const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+                    const wsDetail = XLSX.utils.aoa_to_sheet(detailRows);
+                    const wsHeatmap = XLSX.utils.aoa_to_sheet(heatmapRows);
+
+                    /* 自动调整列宽 */
+                    [wsSummary, wsDetail, wsHeatmap].forEach(ws => {
+                        const range = XLSX.utils.decode_range(ws['!ref']);
+                        const widths = [];
+                        for (let c = range.s.c; c <= range.e.c; c++) {
+                            let maxLen = 10;
+                            for (let r = range.s.r; r <= range.e.r; r++) {
+                                const cell = ws[XLSX.utils.encode_cell({ r, c })];
+                                if (!cell || cell.v === undefined || cell.v === null) continue;
+                                const len = String(cell.v).length;
+                                if (len > maxLen) maxLen = len;
+                            }
+                            widths.push({ wch: Math.min(Math.max(maxLen + 2, 10), 28) });
+                        }
+                        ws['!cols'] = widths;
+                    });
+
+                    XLSX.utils.book_append_sheet(wb, wsSummary, '分析汇总');
+                    XLSX.utils.book_append_sheet(wb, wsDetail, '月度明细');
+                    XLSX.utils.book_append_sheet(wb, wsHeatmap, '热力图数据');
+
+                    const today = new Date().toISOString().slice(0, 10);
+                    const metricName = String(selectedMetric.label).replace(/[\\/:*?"<>|]/g, '_');
+                    const filename = `分析_${sourceLabel}_${metricName}_${today}.xlsx`;
+
+                    XLSX.writeFile(wb, filename);
+
+                    if (statusBadge) {
+                        statusBadge.innerHTML = `<i class="fas fa-circle" style="color:#2e7d32;"></i> 分析导出成功`;
+                        setTimeout(() => {
+                            statusBadge.innerHTML = `<i class="fas fa-circle" style="color:#2e7d32;"></i> 已连接`;
+                        }, 3000);
+                    }
+                } catch (error) {
+                    console.error('exportAnalysisExcel error:', error);
+                    alert('分析 Excel 导出失败：' + (error && error.message ? error.message : error));
+                }
             }
 
             function exportExpenseExcel() {
@@ -2055,30 +2233,180 @@
             }
 
             function renderAllVehiclesTable(vehicles) {
-                if (!vehicles || !vehicles.length) { allVehiclesTableBody.innerHTML = `<tr><td colspan="14" style="text-align:center;padding:2rem;color:#8ba3bb;">暂无数据</td></tr>`; allVehiclesCount.textContent = '共 0 辆车'; return; }
+                const tableHead = document.getElementById('allVehiclesTableHead');
+
+                const metricColumns = [
+                    { key: 'totalLiter',    label: '总油耗(L)', format: v => formatNumberCompact(v) },
+                    { key: 'totalCost',     label: '总花费(RM)', format: v => formatNumberCompact(v) },
+                    { key: 'totalM3',       label: '总m³', format: v => formatNumberCompact(v) },
+                    { key: 'totalTrip',     label: '总趟', format: v => formatNumberInt(v) },
+                    { key: 'literPerM3',    label: 'L/m³', format: v => Number(v).toFixed(1) },
+                    { key: 'costPerM3',     label: 'RM/m³', format: v => Number(v).toFixed(2) },
+                    { key: 'literPerTrip',  label: 'L/趟', format: v => Number(v).toFixed(1) },
+                    { key: 'costPerTrip',   label: 'RM/趟', format: v => Number(v).toFixed(2) },
+                    { key: 'literPerKm',    label: 'L/km', format: v => Number(v).toFixed(2) },
+                    { key: 'costPerKm',     label: 'RM/km', format: v => Number(v).toFixed(2) }
+                ];
+
+                // 只显示目前被按钮选中的指标。
+                // 表头和资料列都从同一个 activeMetricKeys 生成，确保绝不会错位。
+                const activeMetricKeys = metricColumns
+                    .filter(col => allVehiclesActiveMetrics.has(col.key))
+                    .map(col => col.key);
+
+                // ===== 空数据 =====
+                if (!vehicles || !vehicles.length) {
+                    if (tableHead) {
+                        tableHead.innerHTML = `
+                            <tr>
+                                <th>车牌</th>
+                                <th>分厂</th>
+                                <th>品牌</th>
+                                <th>车型</th>
+                                ${metricColumns
+                                    .filter(col => activeMetricKeys.includes(col.key))
+                                    .map(col => `<th>${col.label}</th>`)
+                                    .join('')}
+                            </tr>`;
+                    }
+                    allVehiclesTableBody.innerHTML = `<tr><td colspan="${4 + activeMetricKeys.length}" style="text-align:center;padding:2rem;color:#8ba3bb;">暂无数据</td></tr>`;
+                    allVehiclesCount.textContent = '共 0 辆车';
+                    return;
+                }
+
                 const summaryData = vehicles.map(v => {
                     const s = getVehicleSummaryByFilter(v, branchYearSet, allVehiclesMonthFilter);
-                    return { plate: v.vehicleNumber || '未知', plant: v.plant || '—', brand: v.brand || '—', type: v.type || '—', totalLiter: s.totalLiter, totalCost: s.totalCost, totalM3: s.totalM3, totalTrip: s.totalTrip, literPerM3: s.literPerM3, costPerM3: s.costPerM3, literPerTrip: s.literPerTrip, costPerTrip: s.costPerTrip, literPerKm: s.literPerKm, costPerKm: s.costPerKm, monthCount: s.monthCount };
+                    return {
+                        plate: v.vehicleNumber || '未知',
+                        plant: v.plant || '—',
+                        brand: v.brand || '—',
+                        type: v.type || '—',
+                        totalLiter: s.totalLiter,
+                        totalCost: s.totalCost,
+                        totalM3: s.totalM3,
+                        totalTrip: s.totalTrip,
+                        literPerM3: s.literPerM3,
+                        costPerM3: s.costPerM3,
+                        literPerTrip: s.literPerTrip,
+                        costPerTrip: s.costPerTrip,
+                        literPerKm: s.literPerKm,
+                        costPerKm: s.costPerKm,
+                        monthCount: s.monthCount
+                    };
                 }).filter(item => item.monthCount > 0);
-                if (!summaryData.length) { allVehiclesTableBody.innerHTML = `<tr><td colspan="14" style="text-align:center;padding:2rem;color:#8ba3bb;">暂无匹配的数据</td></tr>`; allVehiclesCount.textContent = '共 0 辆车'; return; }
+
+                if (!summaryData.length) {
+                    if (tableHead) {
+                        tableHead.innerHTML = `
+                            <tr>
+                                <th>车牌</th>
+                                <th>分厂</th>
+                                <th>品牌</th>
+                                <th>车型</th>
+                                ${metricColumns
+                                    .filter(col => activeMetricKeys.includes(col.key))
+                                    .map(col => `<th>${col.label}</th>`)
+                                    .join('')}
+                            </tr>`;
+                    }
+                    allVehiclesTableBody.innerHTML = `<tr><td colspan="${4 + activeMetricKeys.length}" style="text-align:center;padding:2rem;color:#8ba3bb;">暂无匹配的数据</td></tr>`;
+                    allVehiclesCount.textContent = '共 0 辆车';
+                    return;
+                }
+
                 allVehiclesCount.textContent = `共 ${summaryData.length} 辆车`;
+
+                // ===== 排序 =====
                 const sortKey = allVehiclesSortKey;
-                summaryData.sort((a, b) => { const va = a[sortKey] || 0, vb = b[sortKey] || 0; if (typeof va === 'string') return va.localeCompare(vb); return vb - va; });
-                const activeMetricKeys = Array.from(allVehiclesActiveMetrics);
-                const metricColumns = [{ key: 'totalLiter' }, { key: 'totalCost' }, { key: 'totalM3' }, { key: 'totalTrip' }, { key: 'literPerM3' }, { key: 'costPerM3' }, { key: 'literPerTrip' }, { key: 'costPerTrip' }, { key: 'literPerKm' }, { key: 'costPerKm' }];
-                let html = '';
-                summaryData.forEach(item => {
-                    const plantColor = item.plant === 'Selangau' ? '#00BCD4' : item.plant === 'Stabau' ? '#E53935' : item.plant === 'SG Merah' ? '#1A73E8' : '#8ba3bb';
-                    html += `<tr><td class="col-plate" style="color:${plantColor};">${item.plate}</td><td>${item.plant}</td><td>${item.brand}</td><td>${item.type}</td>`;
-                    metricColumns.forEach(col => {
-                        const isActive = activeMetricKeys.includes(col.key);
-                        const val = item[col.key];
-                        let display = '—';
-                        if (val !== undefined && val !== null && !isNaN(val)) { display = col.key === 'totalTrip' ? formatNumberInt(val) : formatNumberCompact(val); }
-                        html += `<td class="col-metric ${isActive ? '' : 'col-metric-hidden'}">${display}</td>`;
+                summaryData.sort((a, b) => {
+                    const va = a[sortKey];
+                    const vb = b[sortKey];
+
+                    if (typeof va === 'string' || typeof vb === 'string') {
+                        return String(va ?? '').localeCompare(String(vb ?? ''));
+                    }
+
+                    return (Number(vb) || 0) - (Number(va) || 0);
+                });
+
+                // ===== 重新生成表头 =====
+                if (tableHead) {
+                    tableHead.innerHTML = `
+                        <tr>
+                            <th data-sort="plate">
+                                车牌 <span class="sort-icon">⇅</span>
+                            </th>
+                            <th data-sort="plant">
+                                分厂 <span class="sort-icon">⇅</span>
+                            </th>
+                            <th data-sort="brand">
+                                品牌 <span class="sort-icon">⇅</span>
+                            </th>
+                            <th data-sort="type">
+                                车型 <span class="sort-icon">⇅</span>
+                            </th>
+                            ${metricColumns
+                                .filter(col => activeMetricKeys.includes(col.key))
+                                .map(col => `
+                                    <th data-sort="${col.key}" class="col-metric-header">
+                                        ${col.label} <span class="sort-icon">⇅</span>
+                                    </th>
+                                `)
+                                .join('')}
+                        </tr>`;
+
+                    // 重新绑定动态表头排序。
+                    tableHead.querySelectorAll('th[data-sort]').forEach(th => {
+                        th.addEventListener('click', function () {
+                            const key = this.dataset.sort;
+                            if (!key) return;
+                            allVehiclesSortKey = key;
+                            if (allVehiclesSort) allVehiclesSort.value = key;
+                            renderAllVehiclesTable(getFilteredVehicles());
+                        });
                     });
+                }
+
+                // ===== 重新生成资料列 =====
+                let html = '';
+
+                summaryData.forEach(item => {
+                    const plantColor =
+                        item.plant === 'Selangau' ? '#00BCD4' :
+                        item.plant === 'Stabau' ? '#E53935' :
+                        item.plant === 'SG Merah' ? '#1A73E8' :
+                        '#8ba3bb';
+
+                    html += `
+                        <tr>
+                            <td class="col-plate" style="color:${plantColor};">${item.plate}</td>
+                            <td>${item.plant}</td>
+                            <td>${item.brand}</td>
+                            <td>${item.type}</td>
+                    `;
+
+                    // 注意：这里只输出 activeMetricKeys。
+                    // 因此每一个数值都会严格跟随对应的表头。
+                    metricColumns.forEach(col => {
+                        if (!activeMetricKeys.includes(col.key)) return;
+
+                        const val = safeNumber(item[col.key]);
+                        let display = '—';
+
+                        if (val !== null) {
+                            display = col.format(val);
+                        }
+
+                        html += `
+                            <td class="col-metric" data-metric="${col.key}">
+                                ${display}
+                            </td>
+                        `;
+                    });
+
                     html += `</tr>`;
                 });
+
                 allVehiclesTableBody.innerHTML = html;
             }
 
@@ -3537,7 +3865,7 @@
                     html += `<td class="meta-col meta-plate" style="color:${plantColor};font-weight:600;">${v.plate}</td>`;
                     html += `<td class="meta-col meta-plant">${v.plant || '—'}</td>`;
                     html += `<td class="meta-col meta-type">${v.type || '—'}</td>`;
-                    html += `<td class="meta-col meta-avg">${analysisMetricKey === 'totalExpense' ? 'RM ' : ''}${formatNumberCompact(vehicleAvg)}</td>`;
+                    html += `<td class="meta-col meta-avg">${analysisMetricKey === 'totalExpense' ? 'RM ' : ''}${(Number(vehicleAvg) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>`;
                     sortedMonths.forEach(m => {
                         const val = monthMap[m];
                         if (val === undefined || val === null) { html += `<td class="cell empty">—</td>`; }
@@ -3551,7 +3879,7 @@
                                 ? (higherBetter ? '\n⚠ 表现差：低于平均值 0.7 倍' : '\n⚠ 异常：高于平均值')
                                 : '';
                             const tooltip = `${v.plate} · ${m}\n${analysisMetricKey === 'totalExpense' ? 'RM ' : ''}${formatNumber(val)}\n该车最大: ${formatNumber(vehicleMax)}\n该车平均: ${formatNumber(vehicleAvg)}${anomalyTip}`;
-                            html += `<td class="${cls}" style="background:${bg};color:${textColor};" title="${tooltip}">${formatNumberCompact(val)}</td>`;
+                            html += `<td class="${cls}" style="background:${bg};color:${textColor};" title="${tooltip}">${(Number(val) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>`;
                         }
                     });
                     html += `</tr>`;
@@ -4012,13 +4340,6 @@
                 });
             });
 
-            document.querySelectorAll('#allVehiclesTableHead th').forEach(th => {
-                th.addEventListener('click', function() {
-                    const sortKey = this.dataset.sort;
-                    if (sortKey) { allVehiclesSortKey = sortKey; allVehiclesSort.value = sortKey; renderAll(); }
-                });
-            });
-
             document.getElementById('rankTabs').addEventListener('click', function(e) {
                 const tab = e.target.closest('.rank-tab');
                 if (!tab) return;
@@ -4164,6 +4485,7 @@
             });
 
             analysisResetBtn.addEventListener('click', resetAnalysisAll);
+            if (analysisExportBtn) analysisExportBtn.addEventListener('click', exportAnalysisExcel);
 
             analysisVehicleCard.addEventListener('click', openAnalysisPlateModal);
             analysisPlantCard.addEventListener('click', openAnalysisPlantModal);
